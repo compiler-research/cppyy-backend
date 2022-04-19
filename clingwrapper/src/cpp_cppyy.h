@@ -54,6 +54,16 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t GetScope(const std::string& scope_name);
     RPY_EXPORTED
+    TCppScope_t NewGetScope(const std::string& scope_name, TCppScope_t parent_scope = 0);
+    RPY_EXPORTED
+    TCppScope_t NewGetNamed(const std::string& scope_name, TCppScope_t parent_scope = 0);
+    RPY_EXPORTED
+    TCppScope_t NewGetParentScope(TCppScope_t scope);
+    RPY_EXPORTED
+    TCppScope_t NewGetScopeFromType(TCppType_t type);
+    RPY_EXPORTED
+    TCppScope_t NewGetGlobalScope();
+    RPY_EXPORTED
     TCppType_t  GetActualClass(TCppType_t klass, TCppObject_t obj);
     RPY_EXPORTED
     size_t      SizeOf(TCppType_t klass);
@@ -130,13 +140,25 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsTemplate(const std::string& template_name);
     RPY_EXPORTED
+    bool NewIsNamespace(TCppScope_t scope);
+    RPY_EXPORTED
+    bool NewIsTemplate(TCppScope_t handle);
+    RPY_EXPORTED
     bool IsAbstract(TCppType_t type);
+    RPY_EXPORTED
+    bool NewIsAbstract(TCppType_t type);
     RPY_EXPORTED
     bool IsEnum(const std::string& type_name);
     RPY_EXPORTED
+    bool NewIsEnum(TCppScope_t type_name);
+    RPY_EXPORTED
     bool IsAggregate(TCppType_t type);
     RPY_EXPORTED
+    bool NewIsAggregate(TCppType_t type);
+    RPY_EXPORTED
     bool IsDefaultConstructable(TCppType_t type);
+    RPY_EXPORTED
+    bool NewIsVariable(TCppScope_t scope);
 
     RPY_EXPORTED
     void GetAllCppNames(TCppScope_t scope, std::set<std::string>& cppnames);
@@ -149,17 +171,27 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetFinalName(TCppType_t type);
     RPY_EXPORTED
+    std::string NewGetFinalName(TCppType_t type);
+    RPY_EXPORTED
     std::string GetScopedFinalName(TCppType_t type);
+    RPY_EXPORTED
+    std::string NewGetScopedFinalName(TCppType_t type);
     RPY_EXPORTED
     bool        HasVirtualDestructor(TCppType_t type);
     RPY_EXPORTED
     bool        HasComplexHierarchy(TCppType_t type);
     RPY_EXPORTED
+    TCppIndex_t NewGetNumBases(TCppType_t type);
+    RPY_EXPORTED
     TCppIndex_t GetNumBases(TCppType_t type);
     RPY_EXPORTED
     std::string GetBaseName(TCppType_t type, TCppIndex_t ibase);
     RPY_EXPORTED
+    TCppScope_t NewGetBaseScope(TCppType_t type, TCppIndex_t ibase);
+    RPY_EXPORTED
     bool        IsSubtype(TCppType_t derived, TCppType_t base);
+    RPY_EXPORTED
+    bool        NewIsSubclass(TCppType_t derived, TCppType_t base);
     RPY_EXPORTED
     bool        IsSmartPtr(TCppType_t type);
     RPY_EXPORTED
@@ -180,6 +212,8 @@ namespace Cppyy {
     TCppIndex_t GetNumMethods(TCppScope_t scope, bool accept_namespace = false);
     RPY_EXPORTED
     std::vector<TCppIndex_t> GetMethodIndicesFromName(TCppScope_t scope, const std::string& name);
+    RPY_EXPORTED
+    std::vector<TCppScope_t> NewGetMethodsFromName(TCppScope_t scope, const std::string& name);
 
     RPY_EXPORTED
     TCppMethod_t GetMethod(TCppScope_t scope, TCppIndex_t imeth);
@@ -218,6 +252,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool        ExistsMethodTemplate(TCppScope_t scope, const std::string& name);
     RPY_EXPORTED
+    bool        NewExistsMethodTemplate(TCppScope_t scope, const std::string& name);
+    RPY_EXPORTED
     bool        IsMethodTemplate(TCppScope_t scope, TCppIndex_t imeth);
     RPY_EXPORTED
     TCppMethod_t GetMethodTemplate(
@@ -249,9 +285,13 @@ namespace Cppyy {
     RPY_EXPORTED
     intptr_t    GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
+    intptr_t    NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata);
+    RPY_EXPORTED
     TCppIndex_t GetDatamemberIndex(TCppScope_t scope, const std::string& name);
     RPY_EXPORTED
     TCppIndex_t GetDatamemberIndexEnumerated(TCppScope_t scope, TCppIndex_t idata);
+    RPY_EXPORTED
+    bool NewCheckDatamember(TCppScope_t scope, const std::string& name);
 
 // data member properties ----------------------------------------------------
     RPY_EXPORTED
@@ -261,7 +301,11 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsStaticData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
+    bool NewIsStaticDatamember(TCppScope_t var);
+    RPY_EXPORTED
     bool IsConstData(TCppScope_t scope, TCppIndex_t idata);
+    RPY_EXPORTED
+    bool NewIsConstVar(TCppScope_t var);
     RPY_EXPORTED
     bool IsEnumData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED

@@ -569,7 +569,6 @@ private: // Private Utility Functions and Classes
    Bool_t HandleNewTransaction(const cling::Transaction &T);
    bool IsClassAutoloadingEnabled() const;
    void ProcessClassesToUpdate();
-   cling::Interpreter *GetInterpreterImpl() const { return fInterpreter.get(); }
    cling::MetaProcessor *GetMetaProcessorImpl() const { return fMetaProcessor.get(); }
 
    friend void TCling__RegisterRdictForLoadPCM(const std::string &pcmFileNameFullPath, llvm::StringRef *pcmContent);
@@ -578,6 +577,8 @@ private: // Private Utility Functions and Classes
 // additional virtual methods at the end for build-time backwards compatibility
    virtual DeclId_t GetTagDeclId(DataMemberInfo_t *info) const;
    virtual ClassInfo_t  *ClassInfo_FactoryWithScope(Bool_t /*all*/ = kTRUE, const char* /*scope*/ = nullptr) const;
+public:
+   cling::Interpreter *GetInterpreterImpl() const { return fInterpreter.get(); }
 };
 
 } // namespace CppyyLegacy

@@ -83,6 +83,14 @@ ROOT_LINKER_LIBRARY(Cling
         $<TARGET_OBJECTS:MetaCling>
         LIBRARIES ${CLING_LIBRARIES} ${LINK_LIBS} ${CLING_PLUGIN_LINK_LIBS})
 
+ROOT_LINKER_LIBRARY(ClingWrappers
+    clingwrapper/clingwrapper.cxx
+    LIBRARIES ${CLING_LIBRARIES} ${LINK_LIBS} ${CLING_PLUGIN_LINK_LIBS}
+    DEPENDENCIES CoreLegacy ThreadLegacy RIOLegacy Cling
+)
+
+target_include_directories(ClingWrappers PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 if(MSVC)
   set_target_properties(Cling PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
