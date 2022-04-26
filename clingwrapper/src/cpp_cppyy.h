@@ -283,6 +283,8 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetDatamemberType(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
+    std::string NewGetDatamemberTypeAsString(TCppScope_t scope);
+    RPY_EXPORTED
     intptr_t    GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
     intptr_t    NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata);

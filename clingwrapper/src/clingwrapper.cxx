@@ -2349,6 +2349,17 @@ std::string Cppyy::GetDatamemberType(TCppScope_t scope, TCppIndex_t idata)
     return "<unknown>";
 }
 
+std::string Cppyy::NewGetDatamemberTypeAsString(TCppScope_t scope)
+{
+    auto D = (clang::Decl *) scope;
+
+    if (auto VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
+        return VD->getType().getAsString();
+    }
+
+    return "";
+}
+
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
 {
     if (scope == GLOBAL_HANDLE) {
