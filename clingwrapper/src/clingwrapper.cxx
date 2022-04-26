@@ -29,6 +29,8 @@
 // LLVM
 #include "llvm/Support/Casting.h"
 
+#include <dlfcn.h>
+
 // ROOT
 #include "TBaseClass.h"
 #include "TClass.h"
@@ -2389,8 +2391,11 @@ intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
     if (scope == NewGetGlobalScope()) {
         if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
             auto GD = clang::GlobalDecl(VD);
-            bool JITed = false;
-            auto address = cling::cppyy::gCling->getAddressOfGlobal(GD, &JITed);
+            std::string mangledName;
+            cling::utils::Analyze::maybeMangleDeclName(GD, mangledName);
+            auto address = dlsym(/*whole_process=*/0, mangledName.c_str());
+            if (!address)
+                address = cling::cppyy::gCling->getAddressOfGlobal(GD);
             printf("\n\npointer=> %p\n\n", address);
             return (intptr_t) address;
         }
