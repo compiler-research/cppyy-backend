@@ -1439,6 +1439,18 @@ Cppyy::TCppScope_t Cppyy::NewGetScope(const std::string &name, TCppScope_t paren
     return 0;
 }
 
+Cppyy::TCppScope_t Cppyy::NewGetTypeScope(TCppScope_t klass) {
+    auto *D = (clang::Decl *)klass;
+    if (auto *VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
+        if (auto *Type = VD->getType().getTypePtrOrNull()) {
+            Type = Type->getPointeeOrArrayElementType()->getUnqualifiedDesugaredType();
+            return (TCppScope_t) Type->getCXXRecordDecl();
+        }
+    }
+    return 0;
+}
+
+
 Cppyy::TCppScope_t Cppyy::NewGetNamed(const std::string &name, TCppScope_t parent)
 {
     clang::DeclContext *Within = 0;

@@ -56,6 +56,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t NewGetScope(const std::string& scope_name, TCppScope_t parent_scope = 0);
     RPY_EXPORTED
+    TCppScope_t NewGetTypeScope(TCppScope_t klass);
+    RPY_EXPORTED
     TCppScope_t NewGetNamed(const std::string& scope_name, TCppScope_t parent_scope = 0);
     RPY_EXPORTED
     TCppScope_t NewGetParentScope(TCppScope_t scope);
