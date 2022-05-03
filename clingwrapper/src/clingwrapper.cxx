@@ -1444,7 +1444,7 @@ Cppyy::TCppScope_t Cppyy::NewGetTypeScope(TCppScope_t klass) {
     if (auto *VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
         if (auto *Type = VD->getType().getTypePtrOrNull()) {
             Type = Type->getPointeeOrArrayElementType()->getUnqualifiedDesugaredType();
-            return (TCppScope_t) Type->getCXXRecordDecl();
+            return (TCppScope_t) Type->getAsCXXRecordDecl();
         }
     }
     return 0;
@@ -1720,6 +1720,19 @@ Cppyy::TCppIndex_t Cppyy::GetNumMethods(TCppScope_t scope, bool accept_namespace
     return (TCppIndex_t)0;         // unknown class?
 }
 
+std::vector<Cppyy::TCppMethod_t> Cppyy::NewGetClassMethods(TCppScope_t scope) {
+    auto *D = (clang::Decl *) scope;
+
+    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
+        std::vector<TCppMethod_t> methods;
+        for (auto it = CXXRD->method_begin(), end = CXXRD->method_end(); it != end; it++) {
+            methods.push_back((TCppMethod_t) *it);
+        }
+        return methods;
+    }
+    return {};
+}
+
 std::vector<Cppyy::TCppIndex_t> Cppyy::GetMethodIndicesFromName(
     TCppScope_t scope, const std::string& name)
 {
@@ -1814,6 +1827,15 @@ std::string Cppyy::GetMethodName(TCppMethod_t method)
     return "<unknown>";
 }
 
+std::string Cppyy::NewGetMethodName(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getNameAsString();
+    }
+    return "";
+}
+
 std::string Cppyy::GetMethodFullName(TCppMethod_t method)
 {
     if (method) {
@@ -1822,6 +1844,15 @@ std::string Cppyy::GetMethodFullName(TCppMethod_t method)
         return name;
     }
     return "<unknown>";
+}
+
+std::string Cppyy::NewGetMethodFullName(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getQualifiedNameAsString();
+    }
+    return "";
 }
 
 std::string Cppyy::GetMethodMangledName(TCppMethod_t method)
@@ -1866,10 +1897,28 @@ std::string Cppyy::GetMethodResultType(TCppMethod_t method)
     return "<unknown>";
 }
 
+std::string Cppyy::NewGetMethodReturnTypeAsString(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getReturnType().getAsString();
+    }
+    return "";
+}
+
 Cppyy::TCppIndex_t Cppyy::GetMethodNumArgs(TCppMethod_t method)
 {
     if (method)
         return m2f(method)->GetNargs();
+    return 0;
+}
+
+Cppyy::TCppIndex_t Cppyy::NewGetMethodNumArgs(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getNumParams();
+    }
     return 0;
 }
 
@@ -1880,6 +1929,15 @@ Cppyy::TCppIndex_t Cppyy::GetMethodReqArgs(TCppMethod_t method)
         return (TCppIndex_t)(f->GetNargs() - f->GetNargsOpt());
     }
     return (TCppIndex_t)0;
+}
+
+Cppyy::TCppIndex_t Cppyy::NewGetMethodReqArgs(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl> (D)) {
+        return CXXMD->getMinRequiredArguments();
+    }
+    return 0;
 }
 
 std::string Cppyy::GetMethodArgName(TCppMethod_t method, TCppIndex_t iarg)
@@ -1906,6 +1964,19 @@ std::string Cppyy::GetMethodArgType(TCppMethod_t method, TCppIndex_t iarg)
         return arg->GetTypeNormalizedName();
     }
     return "<unknown>";
+}
+
+std::string Cppyy::NewGetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
+{
+    auto *D = (clang::Decl *) method;
+
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        if (iarg < CXXMD->getNumParams()) {
+            auto *PVD = CXXMD->getParamDecl(iarg);
+            return PVD->getOriginalType().getAsString();
+        }
+    }
+    return "";
 }
 
 std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
@@ -2056,6 +2127,19 @@ bool Cppyy::IsMethodTemplate(TCppScope_t scope, TCppIndex_t idx)
 
     assert(scope == (Cppyy::TCppType_t)GLOBAL_HANDLE);
     if (((CallWrapper*)idx)->fName.find('<') != std::string::npos) return true;
+    return false;
+}
+
+bool Cppyy::NewIsTemplatedMethod(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        auto TK = CXXMD->getTemplatedKind();
+        return TK == clang::FunctionDecl::TemplatedKind::TK_FunctionTemplateSpecialization
+            || TK == clang::FunctionDecl::TemplatedKind::TK_DependentFunctionTemplateSpecialization
+            || TK == clang::FunctionDecl::TemplatedKind::TK_FunctionTemplate ;
+    }
+
     return false;
 }
 
@@ -2216,12 +2300,32 @@ bool Cppyy::IsPublicMethod(TCppMethod_t method)
     return false;
 }
 
+bool Cppyy::NewIsPublicMethod(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getAccess() == clang::AccessSpecifier::AS_public;
+    }
+
+    return false;
+}
+
 bool Cppyy::IsProtectedMethod(TCppMethod_t method)
 {
     if (method) {
         TFunction* f = m2f(method);
         return f->Property() & kIsProtected;
     }
+    return false;
+}
+
+bool Cppyy::NewIsProtectedMethod(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->getAccess() == clang::AccessSpecifier::AS_protected;
+    }
+
     return false;
 }
 
@@ -2234,6 +2338,16 @@ bool Cppyy::IsConstructor(TCppMethod_t method)
     return false;
 }
 
+bool Cppyy::NewIsConstructor(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return llvm::isa_and_nonnull<clang::CXXConstructorDecl>(CXXMD);
+    }
+
+    return false;
+}
+
 bool Cppyy::IsDestructor(TCppMethod_t method)
 {
     if (method) {
@@ -2243,12 +2357,32 @@ bool Cppyy::IsDestructor(TCppMethod_t method)
     return false;
 }
 
+bool Cppyy::NewIsDestructor(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return llvm::isa_and_nonnull<clang::CXXDestructorDecl>(CXXMD);
+    }
+
+    return false;
+}
+
 bool Cppyy::IsStaticMethod(TCppMethod_t method)
 {
     if (method) {
         TFunction* f = m2f(method);
         return f->Property() & kIsStatic;
     }
+    return false;
+}
+
+bool Cppyy::NewIsStaticMethod(TCppMethod_t method)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        return CXXMD->isStatic();
+    }
+
     return false;
 }
 
@@ -2288,6 +2422,20 @@ Cppyy::TCppIndex_t Cppyy::GetNumDatamembers(TCppScope_t scope, bool accept_names
     }
 
     return (TCppIndex_t)0;         // unknown class?
+}
+
+std::vector<Cppyy::TCppScope_t> Cppyy::NewGetDatamembers(TCppScope_t scope)
+{
+    auto *D = (clang::Decl *) scope;
+
+    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
+        std::vector<TCppScope_t> datamembers;
+        for (auto it = CXXRD->field_begin(), end = CXXRD->field_end(); it != end ; it++) {
+            datamembers.push_back((TCppScope_t) *it);
+        }
+        return datamembers;
+    }
+    return {};
 }
 
 std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)
@@ -2425,8 +2573,8 @@ intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
     }
 
     if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
-        if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
-            return 0; //(intptr_t) cling::cppyy::gCling->ProcessLine((std::string("&")+NewGetScopedFinalName(idata)+";").c_str());
+        if (llvm::isa_and_nonnull<clang::VarDecl>(D)) {
+            return (intptr_t) cling::cppyy::gCling->process((std::string("&")+NewGetScopedFinalName(idata)+";").c_str());
         }
         if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
             auto &ASTCxt = cling::cppyy::Sema.getASTContext();
@@ -2550,9 +2698,31 @@ bool Cppyy::IsPublicData(TCppScope_t scope, TCppIndex_t idata)
     return CheckAccess(scope, idata, clang::AS_public);
 }
 
+bool Cppyy::NewIsPublicData(TCppScope_t data)
+{
+    auto *D = (clang::Decl *) data;
+
+    if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
+        return FD->getAccess() == clang::AS_public;
+    }
+
+    return false;
+}
+
 bool Cppyy::IsProtectedData(TCppScope_t scope, TCppIndex_t idata)
 {
     return CheckAccess(scope, idata, clang::AS_protected);
+}
+
+bool Cppyy::NewIsProtectedData(TCppScope_t data)
+{
+    auto *D = (clang::Decl *) data;
+
+    if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
+        return FD->getAccess() == clang::AS_protected;
+    }
+
+    return false;
 }
 
 bool Cppyy::IsStaticData(TCppScope_t scope, TCppIndex_t idata)

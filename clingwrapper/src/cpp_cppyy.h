@@ -213,6 +213,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppIndex_t GetNumMethods(TCppScope_t scope, bool accept_namespace = false);
     RPY_EXPORTED
+    std::vector<TCppMethod_t> NewGetClassMethods(TCppScope_t scope);
+    RPY_EXPORTED
     std::vector<TCppIndex_t> GetMethodIndicesFromName(TCppScope_t scope, const std::string& name);
     RPY_EXPORTED
     std::vector<TCppScope_t> NewGetMethodsFromName(TCppScope_t scope, const std::string& name);
@@ -223,19 +225,31 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetMethodName(TCppMethod_t);
     RPY_EXPORTED
+    std::string NewGetMethodName(TCppMethod_t);
+    RPY_EXPORTED
     std::string GetMethodFullName(TCppMethod_t);
+    RPY_EXPORTED
+    std::string NewGetMethodFullName(TCppMethod_t);
     RPY_EXPORTED
     std::string GetMethodMangledName(TCppMethod_t);
     RPY_EXPORTED
     std::string GetMethodResultType(TCppMethod_t);
     RPY_EXPORTED
+    std::string NewGetMethodReturnTypeAsString(TCppMethod_t);
+    RPY_EXPORTED
     TCppIndex_t GetMethodNumArgs(TCppMethod_t);
     RPY_EXPORTED
+    TCppIndex_t NewGetMethodNumArgs(TCppMethod_t);
+    RPY_EXPORTED
     TCppIndex_t GetMethodReqArgs(TCppMethod_t);
+    RPY_EXPORTED
+    TCppIndex_t NewGetMethodReqArgs(TCppMethod_t);
     RPY_EXPORTED
     std::string GetMethodArgName(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
     std::string GetMethodArgType(TCppMethod_t, TCppIndex_t iarg);
+    RPY_EXPORTED
+    std::string NewGetMethodArgTypeAsString(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
     std::string GetMethodArgDefault(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
@@ -258,6 +272,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool        IsMethodTemplate(TCppScope_t scope, TCppIndex_t imeth);
     RPY_EXPORTED
+    bool        NewIsTemplatedMethod(TCppMethod_t method);
+    RPY_EXPORTED
     TCppMethod_t GetMethodTemplate(
         TCppScope_t scope, const std::string& name, const std::string& proto);
 
@@ -276,10 +292,22 @@ namespace Cppyy {
     bool IsDestructor(TCppMethod_t method);
     RPY_EXPORTED
     bool IsStaticMethod(TCppMethod_t method);
+    RPY_EXPORTED
+    bool NewIsPublicMethod(TCppMethod_t method);
+    RPY_EXPORTED
+    bool NewIsProtectedMethod(TCppMethod_t method);
+    RPY_EXPORTED
+    bool NewIsConstructor(TCppMethod_t method);
+    RPY_EXPORTED
+    bool NewIsDestructor(TCppMethod_t method);
+    RPY_EXPORTED
+    bool NewIsStaticMethod(TCppMethod_t method);
 
 // data member reflection information ----------------------------------------
     RPY_EXPORTED
     TCppIndex_t GetNumDatamembers(TCppScope_t scope, bool accept_namespace = false);
+    RPY_EXPORTED
+    std::vector<TCppScope_t> NewGetDatamembers(TCppScope_t scope);
     RPY_EXPORTED
     std::string GetDatamemberName(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
@@ -301,7 +329,11 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsPublicData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
+    bool NewIsPublicData(TCppScope_t data);
+    RPY_EXPORTED
     bool IsProtectedData(TCppScope_t scope, TCppIndex_t idata);
+    RPY_EXPORTED
+    bool NewIsProtectedData(TCppScope_t data);
     RPY_EXPORTED
     bool IsStaticData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
