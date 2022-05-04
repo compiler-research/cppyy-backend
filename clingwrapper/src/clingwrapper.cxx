@@ -1468,17 +1468,21 @@ Cppyy::TCppScope_t Cppyy::NewGetTypeScope(TCppScope_t klass) {
 Cppyy::TCppScope_t Cppyy::NewGetNamed(const std::string &name, TCppScope_t parent)
 {
     clang::DeclContext *Within = 0;
+    std::string par = "";
     if (parent) {
         auto *D = (clang::Decl *)parent;
         Within = llvm::dyn_cast<clang::DeclContext>(D);
+        par = Cppyy::NewGetScopedFinalName(parent);
     }
 
     cling::Interpreter::PushTransactionRAII RAII(cling::cppyy::gCling);
     auto *ND = cling::utils::Lookup::Named(&cling::cppyy::Sema, name, Within);
     if (ND && ND != (clang::NamedDecl*) -1) {
+        printf("  Lookup: Found => %s : %s\n", par.c_str(), name.c_str());
         return (TCppScope_t)(ND->getCanonicalDecl());
     }
 
+    printf("  Lookup: Not Found => %s : %s\n", par.c_str(), name.c_str());
     return 0;
 }
 
@@ -2581,7 +2585,6 @@ intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
             auto address = dlsym(/*whole_process=*/0, mangledName.c_str());
             if (!address)
                 address = cling::cppyy::gCling->getAddressOfGlobal(GD);
-            printf("\n\npointer=> %p\n\n", address);
             return (intptr_t) address;
         }
     }
