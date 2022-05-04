@@ -1380,6 +1380,20 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)
     return res;
 }
 
+std::vector<Cppyy::TCppScope_t> Cppyy::NewGetUsingNamespaces(TCppScope_t scope)
+{
+    auto *D = (clang::Decl *) scope;
+
+    if (auto *DC = llvm::dyn_cast_or_null<clang::DeclContext>(D)) {
+        std::vector<TCppScope_t> namespaces;
+        for (auto UD : DC->using_directives()) {
+            namespaces.push_back((TCppScope_t) UD->getNominatedNamespace());
+        }
+        return namespaces;
+    }
+
+    return {};
+}
 
 // class reflection information ----------------------------------------------
 std::string Cppyy::GetFinalName(TCppType_t klass)

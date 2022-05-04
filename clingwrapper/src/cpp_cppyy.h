@@ -168,6 +168,8 @@ namespace Cppyy {
 // namespace reflection information ------------------------------------------
     RPY_EXPORTED
     std::vector<TCppScope_t> GetUsingNamespaces(TCppScope_t);
+    RPY_EXPORTED
+    std::vector<TCppScope_t> NewGetUsingNamespaces(TCppScope_t);
 
 // class reflection information ----------------------------------------------
     RPY_EXPORTED
