@@ -333,13 +333,15 @@ public:
             gInterpreter->ProcessLine(s.str().c_str());
         }
 
+        gInterpreter->ProcessLine(".I /media/sudo-panda/D/workspaces/cppyy/src/cppyy-backend/cling/build/etc/");
     // load frequently used headers
         const char* code =
                "#include <iostream>\n"
                "#include <string>\n"
                "#include <DllImport.h>\n"     // defines R__EXTERN
                "#include <vector>\n"
-               "#include <utility>";
+               "#include <utility>\n"
+               "#include \"cling/Interpreter/Interpreter.h\"";
         gInterpreter->ProcessLine(code);
 
     // create helpers for comparing thingies
