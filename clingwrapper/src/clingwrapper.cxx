@@ -1453,6 +1453,21 @@ Cppyy::TCppScope_t Cppyy::NewGetScope(const std::string &name, TCppScope_t paren
     return 0;
 }
 
+Cppyy::TCppScope_t Cppyy::NewGetFullScope(const std::string &name)
+{
+    std::string delim = "::";
+    size_t start = 0;
+    size_t end = name.find(delim);
+    TCppScope_t curr_scope = 0;
+    while (end != std::string::npos)
+    {
+        curr_scope = Cppyy::NewGetScope(name.substr(start, end - start), curr_scope);
+        start = end + delim.length();
+        end = name.find(delim, start);
+    }
+    return Cppyy::NewGetScope(name.substr(start, end), curr_scope);
+}
+
 Cppyy::TCppScope_t Cppyy::NewGetTypeScope(TCppScope_t klass) {
     auto *D = (clang::Decl *)klass;
     if (auto *VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
