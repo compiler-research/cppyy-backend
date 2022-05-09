@@ -2050,6 +2050,15 @@ std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formalargs,
     return "<unknown>";
 }
 
+std::string Cppyy::NewGetMethodSignature(TCppMethod_t method, bool show_formalargs, TCppIndex_t maxargs)
+{
+    auto *D = (clang::Decl *) method;
+    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
+        printf("%s\n", CXXMD->getFunctionType()->getTypeClassName());
+    }
+    return "<unknown>";
+}
+
 std::string Cppyy::GetMethodPrototype(TCppScope_t scope, TCppMethod_t method, bool show_formalargs)
 {
     std::string scName = GetScopedFinalName(scope);
