@@ -2603,6 +2603,7 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
 intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
 {
     auto *D = (clang::Decl *) idata;
+    printf("hoop\n");
     if (scope == NewGetGlobalScope() || Cppyy::NewIsNamespace(scope)) {
         if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
             auto GD = clang::GlobalDecl(VD);
@@ -2611,6 +2612,7 @@ intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
             auto address = dlsym(/*whole_process=*/0, mangledName.c_str());
             if (!address)
                 address = cling::cppyy::gCling->getAddressOfGlobal(GD);
+            printf("here\n");
             return (intptr_t) address;
         }
     }
