@@ -2603,7 +2603,7 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
 intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
 {
     auto *D = (clang::Decl *) idata;
-    if (scope == NewGetGlobalScope()) {
+    if (scope == NewGetGlobalScope() || Cppyy::NewIsNamespace(scope)) {
         if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
             auto GD = clang::GlobalDecl(VD);
             std::string mangledName;
@@ -2626,6 +2626,7 @@ intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
                           .getFieldOffset(FD->getFieldIndex())).getQuantity();
         }
     }
+    return 0;
 }
 
 static inline
