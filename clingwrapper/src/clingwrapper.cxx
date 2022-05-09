@@ -1585,7 +1585,7 @@ Cppyy::TCppIndex_t Cppyy::NewGetNumBases(TCppType_t klass)
 
     auto *D = (clang::Decl *) klass;
 
-    if (auto *CRD = llvm::dyn_cast<clang::CXXRecordDecl>(D))
+    if (auto *CRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D))
         return CRD->getNumBases();
 
     return 0;
