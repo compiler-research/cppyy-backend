@@ -49,7 +49,7 @@ def _load_helper(bkname):
                 fpath = os.path.join(pkgpath, loc, dep+soext)
                 if os.path.exists(fpath):
                     ldtype = ctypes.RTLD_GLOBAL
-                    if dep == 'libCling': ldtype = ctypes.RTLD_LOCAL
+                    #  if dep == 'libCling': ldtype = ctypes.RTLD_LOCAL
                     ctypes.CDLL(fpath, ldtype)
                     break
         return ctypes.CDLL(os.path.join(pkgpath, 'lib', bkname), ctypes.RTLD_GLOBAL), errors

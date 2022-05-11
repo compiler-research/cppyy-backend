@@ -399,7 +399,14 @@ TClassRef& type_from_handle(Cppyy::TCppScope_t scope)
 
 static inline
 TFunction* m2f(Cppyy::TCppMethod_t method) {
-    CallWrapper* wrap = ((CallWrapper*)method);
+    auto *D = (clang::Decl *) method;
+    CallWrapper *wrap;
+    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
+        wrap = new_CallWrapper(FD, FD->getNameAsString());
+    } else {
+        printf("Function Decl invalid\n");
+    }
+
     if (!wrap->fTF) {
         MethodInfo_t* mi = gInterpreter->MethodInfo_Factory(wrap->fDecl);
         wrap->fTF = new TFunction(mi);
@@ -840,7 +847,14 @@ void Cppyy::Destruct(TCppType_t type, TCppObject_t instance)
 static TInterpreter::CallFuncIFacePtr_t GetCallFunc(Cppyy::TCppMethod_t method, bool as_iface)
 {
 // TODO: method should be a callfunc, so that no mapping would be needed.
-    CallWrapper* wrap = (CallWrapper*)method;
+    auto *D = (clang::Decl *) method;
+    CallWrapper *wrap;
+    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
+        wrap = new_CallWrapper(FD, FD->getNameAsString());
+    } else {
+        printf("Function Decl invalid\n");
+    }
+
 
     CallFunc_t* callf = gInterpreter->CallFunc_Factory();
     MethodInfo_t* meth = gInterpreter->MethodInfo_Factory(wrap->fDecl);
@@ -912,7 +926,13 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
     bool is_direct = nargs & DIRECT_CALL;
     nargs = CALL_NARGS(nargs);
 
-    CallWrapper* wrap = (CallWrapper*)method;
+    auto *D = (clang::Decl *) method;
+    CallWrapper *wrap;
+    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
+        wrap = new_CallWrapper(FD, FD->getNameAsString());
+    } else {
+        printf("Function Decl invalid\n");
+    }
     const TInterpreter::CallFuncIFacePtr_t& faceptr = \
         is_ready(wrap, is_direct) ? wrap->fFaceptr : GetCallFunc(method, !is_direct);
     if (!is_ready(wrap, is_direct))

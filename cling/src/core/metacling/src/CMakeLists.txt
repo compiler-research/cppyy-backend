@@ -86,7 +86,7 @@ ROOT_LINKER_LIBRARY(Cling
 ROOT_LINKER_LIBRARY(ClingWrappers
     clingwrapper/clingwrapper.cxx
     LIBRARIES ${CLING_LIBRARIES} ${LINK_LIBS} ${CLING_PLUGIN_LINK_LIBS}
-    DEPENDENCIES CoreLegacy ThreadLegacy RIOLegacy Cling
+    DEPENDENCIES CoreLegacy ThreadLegacy Cling RIOLegacy
 )
 
 target_include_directories(ClingWrappers PUBLIC 
