@@ -224,6 +224,7 @@ size_t TClingCallFunc::CalculateMinRequiredArguments()
 void *TClingCallFunc::compile_wrapper(const string &wrapper_name, const string &wrapper,
                                       bool withAccessControl/*=true*/)
 {
+   printf("%s\n", wrapper.c_str());
    return fInterp->compileFunction(wrapper_name, wrapper, false /*ifUnique*/,
                                    false /* withAccessControl */);
 }
@@ -680,6 +681,11 @@ void TClingCallFunc::make_narg_ctor_with_return(const unsigned N, const string &
 int TClingCallFunc::get_wrapper_code(std::string &wrapper_name, std::string &wrapper, bool as_iface)
 {
    const FunctionDecl *FD = GetDecl();
+   printf("\n%p\n", FD);
+   for (auto PD = FD->getMostRecentDecl(); PD != nullptr; PD = PD->getPreviousDecl()) {
+      printf("\n%p\n", PD);
+      PD->dump();
+   }
    assert(FD && "generate_wrapper called without a function decl!");
    ASTContext &Context = FD->getASTContext();
    PrintingPolicy Policy(Context.getPrintingPolicy());
