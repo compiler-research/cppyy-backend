@@ -10,24 +10,8 @@
 #include "cpp_cppyy.h"
 #include "callcontext.h"
 
-// Cling
-#include "cling/Utils/AST.h"
-#include "cling/Interpreter/Interpreter.h"
-#include "cling/Interpreter/LookupHelper.h"
-
 #include "TCling.h"
-
-// Clang
-#include "clang/AST/DeclBase.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/RecordLayout.h"
-#include "clang/AST/GlobalDecl.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Sema/Sema.h"
-#include "clang/Sema/Lookup.h"
-
-// LLVM
-#include "llvm/Support/Casting.h"
+#include "TFunction.h"
 
 #include <dlfcn.h>
 
@@ -45,7 +29,6 @@
 #include "TEnv.h"
 #include "TError.h"
 #include "TException.h"
-#include "TFunction.h"
 #include "TFunctionTemplate.h"
 #include "TGlobal.h"
 #include "THashList.h"
@@ -95,7 +78,6 @@ using namespace CppyyLegacy;
 
 // temp
 #include <iostream>
-typedef CPyCppyy::Parameter Parameter;
 // --temp
 
 #if defined(__arm64__)
@@ -118,24 +100,6 @@ public:
 } // unnamed namespace
 #endif // __arm64__
 
-namespace cling
-{
-namespace cppyy
-{ 
-    auto *gCling = ((TCling *)gInterpreter)->GetInterpreterImpl();
-    auto &Sema = gCling->getCI()->getSema();
-}
-}
-
-// small number that allows use of stack for argument passing
-const int SMALL_ARGS_N = 8;
-
-// convention to pass flag for direct calls (similar to Python's vector calls)
-#define DIRECT_CALL ((size_t)1 << (8 * sizeof(size_t) - 1))
-static inline size_t CALL_NARGS(size_t nargs) {
-    return nargs & ~DIRECT_CALL;
-}
-
 // data for life time management ---------------------------------------------
 typedef std::vector<TClassRef> ClassRefs_t;
 static ClassRefs_t g_classrefs(1);
@@ -156,43 +120,16 @@ Cppyy::TCppType_t find_memoized(const std::string& name)
     return (Cppyy::TCppType_t)0;
 }
 
-class CallWrapper {
-public:
-    typedef const void* DeclId_t;
-
-public:
-    CallWrapper(TFunction* f) : fDecl(f->GetDeclId()), fName(f->GetName()), fTF(new TFunction(*f)) {}
-    CallWrapper(DeclId_t fid, const std::string& n) : fDecl(fid), fName(n), fTF(nullptr) {}
-    ~CallWrapper() {
-        delete fTF;
-    }
-
-public:
-    TInterpreter::CallFuncIFacePtr_t fFaceptr;
-    DeclId_t      fDecl;
-    std::string   fName;
-    TFunction*    fTF;
-};
-
-}
-
-static std::vector<CallWrapper*> gWrapperHolder;
+} // namespace 
 
 static inline
-CallWrapper* new_CallWrapper(TFunction* f)
+CallWrapper* new_CallWrapper(CppyyLegacy::TFunction* f)
 {
     CallWrapper* wrap = new CallWrapper(f);
     gWrapperHolder.push_back(wrap);
     return wrap;
 }
 
-static inline
-CallWrapper* new_CallWrapper(CallWrapper::DeclId_t fid, const std::string& n)
-{
-    CallWrapper* wrap = new CallWrapper(fid, n);
-    gWrapperHolder.push_back(wrap);
-    return wrap;
-}
 
 typedef std::vector<TGlobal*> GlobalVars_t;
 typedef std::map<TGlobal*, GlobalVars_t::size_type> GlobalVarsIndices_t;
@@ -200,12 +137,6 @@ typedef std::map<TGlobal*, GlobalVars_t::size_type> GlobalVarsIndices_t;
 static GlobalVars_t g_globalvars;
 static GlobalVarsIndices_t g_globalidx;
 
-
-// data ----------------------------------------------------------------------
-Cppyy::TCppScope_t Cppyy::gGlobalScope =
-    (Cppyy::TCppScope_t) cling::cppyy::Sema
-                            .getASTContext()
-                            .getTranslationUnitDecl();
 
 // builtin types
 static std::set<std::string> g_builtins =
@@ -330,7 +261,7 @@ public:
         if (optLevel != 0) {
             std::ostringstream s;
             s << "#pragma cling optimize " << optLevel;
-            cling::cppyy::gCling->process(s.str().c_str());
+            gInterpreter->ProcessLine(s.str().c_str());
         }
 
         gInterpreter->ProcessLine(".I /media/sudo-panda/D/workspaces/cppyy/src/cppyy-backend/cling/build/etc/");
@@ -342,19 +273,19 @@ public:
                "#include <vector>\n"
                "#include <utility>\n"
                "#include \"cling/Interpreter/Interpreter.h\"";
-        cling::cppyy::gCling->process(code);
+        gInterpreter->ProcessLine(code);
         gInterpreter->ProcessLine(".I");
 
     // create helpers for comparing thingies
-        cling::cppyy::gCling->declare(
+        gInterpreter->Declare(
             "namespace __cppyy_internal { template<class C1, class C2>"
             " bool is_equal(const C1& c1, const C2& c2) { return (bool)(c1 == c2); } }");
-        cling::cppyy::gCling->declare(
+        gInterpreter->Declare(
             "namespace __cppyy_internal { template<class C1, class C2>"
             " bool is_not_equal(const C1& c1, const C2& c2) { return (bool)(c1 != c2); } }");
 
     // helper for multiple inheritance
-        cling::cppyy::gCling->declare("namespace __cppyy_internal { struct Sep; }");
+        gInterpreter->Declare("namespace __cppyy_internal { struct Sep; }");
 
     // retrieve all initial (ROOT) C++ names in the global scope to allow filtering later
         gROOT->GetListOfGlobals(true);             // force initialize
@@ -372,6 +303,14 @@ public:
         gRootSOs.insert("libRIOLegacy.dll ");
         gRootSOs.insert("libThreadLegacy.dll ");
 #endif
+
+        char *libInterop = gSystem->DynamicPathName("libInterop");
+        void *interopDL = dlopen(libInterop, RTLD_LAZY);
+        delete [] libInterop;
+        if (!interopDL) {
+            std::cerr << "libInterop could not be opened!\n";
+            exit(1);
+        }
 
     // start off with a reasonable size placeholder for wrappers
         gWrapperHolder.reserve(1024);
@@ -400,19 +339,13 @@ TClassRef& type_from_handle(Cppyy::TCppScope_t scope)
 
 static inline
 TFunction* m2f(Cppyy::TCppMethod_t method) {
-    auto *D = (clang::Decl *) method;
-    CallWrapper *wrap;
-    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
-        wrap = new_CallWrapper(FD, FD->getNameAsString());
-    } else {
-        printf("Function Decl invalid\n");
-    }
+    CallWrapper *wrap = (CallWrapper *)method;
 
     if (!wrap->fTF) {
         MethodInfo_t* mi = gInterpreter->MethodInfo_Factory(wrap->fDecl);
         wrap->fTF = new TFunction(mi);
     }
-    return wrap->fTF;
+    return (TFunction *) wrap->fTF;
 }
 
 static inline
@@ -680,12 +613,6 @@ bool Cppyy::IsTemplate(const std::string& template_name)
     return false;
 }
 
-bool Cppyy::NewIsTemplate(TCppScope_t handle)
-{
-    auto *D = (clang::Decl *)handle;
-    return llvm::isa_and_nonnull<clang::TemplateDecl>(D);
-}
-
 namespace {
     class AutoCastRTTI {
     public:
@@ -843,196 +770,11 @@ void Cppyy::Destruct(TCppType_t type, TCppObject_t instance)
     }
 }
 
-
-// method/function dispatching -----------------------------------------------
-static TInterpreter::CallFuncIFacePtr_t GetCallFunc(Cppyy::TCppMethod_t method, bool as_iface)
-{
-// TODO: method should be a callfunc, so that no mapping would be needed.
-    auto *D = (clang::Decl *) method;
-    CallWrapper *wrap;
-    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
-        wrap = new_CallWrapper(FD, FD->getNameAsString());
-    } else {
-        printf("Function Decl invalid\n");
-    }
-
-
-    CallFunc_t* callf = gInterpreter->CallFunc_Factory();
-    MethodInfo_t* meth = gInterpreter->MethodInfo_Factory(wrap->fDecl);
-    gInterpreter->CallFunc_SetFunc(callf, meth);
-    gInterpreter->MethodInfo_Delete(meth);
-
-    if (!(callf && gInterpreter->CallFunc_IsValid(callf))) {
-    // TODO: propagate this error to caller w/o use of Python C-API
-    /*
-        PyErr_Format(PyExc_RuntimeError, "could not resolve %s::%s(%s)",
-            const_cast<TClassRef&>(klass).GetClassName(),
-            wrap.fName, callString.c_str()); */
-        std::cerr << "TODO: report unresolved function error to Python\n";
-        if (callf) gInterpreter->CallFunc_Delete(callf);
-        return TInterpreter::CallFuncIFacePtr_t{};
-    }
-
-// generate the wrapper and JIT it; ignore wrapper generation errors (will simply
-// result in a nullptr that is reported upstream if necessary; often, however,
-// there is a different overload available that will do)
-    auto oldErrLvl = gErrorIgnoreLevel;
-    gErrorIgnoreLevel = kFatal;
-    wrap->fFaceptr = gInterpreter->CallFunc_IFacePtr(callf, as_iface);
-    gErrorIgnoreLevel = oldErrLvl;
-
-    gInterpreter->CallFunc_Delete(callf);   // does not touch IFacePtr
-    return wrap->fFaceptr;
-}
-
-static inline
-bool copy_args(Parameter* args, size_t nargs, void** vargs)
-{
-    bool runRelease = false;
-    for (size_t i = 0; i < nargs; ++i) {
-        switch (args[i].fTypeCode) {
-        case 'X':       /* (void*)type& with free */
-            runRelease = true;
-        case 'V':       /* (void*)type& */
-            vargs[i] = args[i].fValue.fVoidp;
-            break;
-        case 'r':       /* const type& */
-            vargs[i] = args[i].fRef;
-            break;
-        default:        /* all other types in union */
-            vargs[i] = (void*)&args[i].fValue.fVoidp;
-            break;
-        }
-    }
-    return runRelease;
-}
-
-static inline
-void release_args(Parameter* args, size_t nargs) {
-    for (size_t i = 0; i < nargs; ++i) {
-        if (args[i].fTypeCode == 'X')
-            free(args[i].fValue.fVoidp);
-    }
-}
-
-static inline
-bool is_ready(CallWrapper* wrap, bool is_direct) {
-    return (!is_direct && wrap->fFaceptr.fGeneric) || (is_direct && wrap->fFaceptr.fDirect);
-}
-
-static inline
-bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* self, void* result)
-{
-    Parameter* args = (Parameter*)args_;
-    bool is_direct = nargs & DIRECT_CALL;
-    nargs = CALL_NARGS(nargs);
-
-    auto *D = (clang::Decl *) method;
-    CallWrapper *wrap;
-    if (auto *FD = llvm::dyn_cast_or_null<clang::FunctionDecl>(D)) {
-        wrap = new_CallWrapper(FD, FD->getNameAsString());
-    } else {
-        printf("Function Decl invalid\n");
-    }
-    const TInterpreter::CallFuncIFacePtr_t& faceptr = \
-        is_ready(wrap, is_direct) ? wrap->fFaceptr : GetCallFunc(method, !is_direct);
-    if (!is_ready(wrap, is_direct))
-        return false;        // happens with compilation error
-
-    nargs = CALL_NARGS(nargs);
-    if (faceptr.fKind == TInterpreter::CallFuncIFacePtr_t::kGeneric) {
-        bool runRelease = false;
-        const auto& fgen = is_direct ? faceptr.fDirect : faceptr.fGeneric;
-        if (nargs <= SMALL_ARGS_N) {
-            void* smallbuf[SMALL_ARGS_N];
-            if (nargs) runRelease = copy_args(args, nargs, smallbuf);
-            CLING_CATCH_UNCAUGHT_
-            fgen(self, (int)nargs, smallbuf, result);
-            _CLING_CATCH_UNCAUGHT
-        } else {
-            std::vector<void*> buf(nargs);
-            runRelease = copy_args(args, nargs, buf.data());
-            CLING_CATCH_UNCAUGHT_
-            fgen(self, (int)nargs, buf.data(), result);
-            _CLING_CATCH_UNCAUGHT
-        }
-        if (runRelease) release_args(args, nargs);
-        return true;
-    }
-
-    if (faceptr.fKind == TInterpreter::CallFuncIFacePtr_t::kCtor) {
-        bool runRelease = false;
-        if (nargs <= SMALL_ARGS_N) {
-            void* smallbuf[SMALL_ARGS_N];
-            if (nargs) runRelease = copy_args(args, nargs, (void**)smallbuf);
-            CLING_CATCH_UNCAUGHT_
-            faceptr.fCtor((void**)smallbuf, result, (unsigned long)nargs);
-            _CLING_CATCH_UNCAUGHT
-        } else {
-            std::vector<void*> buf(nargs);
-            runRelease = copy_args(args, nargs, buf.data());
-            CLING_CATCH_UNCAUGHT_
-            faceptr.fCtor(buf.data(), result, (unsigned long)nargs);
-            _CLING_CATCH_UNCAUGHT
-        }
-        if (runRelease) release_args(args, nargs);
-        return true;
-    }
-
-    if (faceptr.fKind == TInterpreter::CallFuncIFacePtr_t::kDtor) {
-        std::cerr << " DESTRUCTOR NOT IMPLEMENTED YET! " << std::endl;
-        return false;
-    }
-
-    return false;
-}
-
-template<typename T>
-static inline
-T CallT(Cppyy::TCppMethod_t method, Cppyy::TCppObject_t self, size_t nargs, void* args)
-{
-    T t{};
-    if (WrapperCall(method, nargs, args, (void*)self, &t))
-        return t;
-    throw std::runtime_error("failed to resolve function");
-    return (T)-1;
-}
-
-#define CPPYY_IMP_CALL(typecode, rtype)                                      \
-rtype Cppyy::Call##typecode(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)\
-{                                                                            \
-    return CallT<rtype>(method, self, nargs, args);                          \
-}
-
-void Cppyy::CallV(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)
-{
-    if (!WrapperCall(method, nargs, args, (void*)self, nullptr))
-        return /* TODO ... report error */;
-}
-
-CPPYY_IMP_CALL(B,  unsigned char)
-CPPYY_IMP_CALL(C,  char         )
-CPPYY_IMP_CALL(H,  short        )
-CPPYY_IMP_CALL(I,  int          )
-CPPYY_IMP_CALL(L,  long         )
-CPPYY_IMP_CALL(LL, Long64_t     )
-CPPYY_IMP_CALL(F,  float        )
-CPPYY_IMP_CALL(D,  double       )
-CPPYY_IMP_CALL(LD, LongDouble_t )
-
-void* Cppyy::CallR(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)
-{
-    void* r = nullptr;
-    if (WrapperCall(method, nargs, args, (void*)self, &r))
-        return r;
-    return nullptr;
-}
-
 char* Cppyy::CallS(
     TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, size_t* length)
 {
     char* cstr = nullptr;
-    TClassRef cr("std::string");
+    CppyyLegacy::TClassRef cr("std::string");
     std::string* cppresult = (std::string*)malloc(sizeof(std::string));
     if (WrapperCall(method, nargs, args, self, (void*)cppresult)) {
         cstr = cppstring_to_cstring(*cppresult);
@@ -1042,15 +784,6 @@ char* Cppyy::CallS(
         *length = 0;
     free((void*)cppresult);
     return cstr;
-}
-
-Cppyy::TCppObject_t Cppyy::CallConstructor(
-    TCppMethod_t method, TCppType_t /* klass */, size_t nargs, void* args)
-{
-    void* obj = nullptr;
-    if (WrapperCall(method, nargs, args, nullptr, &obj))
-        return (TCppObject_t)obj;
-    return (TCppObject_t)0;
 }
 
 void Cppyy::CallDestructor(TCppType_t type, TCppObject_t self)
@@ -1135,28 +868,12 @@ bool Cppyy::IsNamespace(TCppScope_t scope)
     return false;
 }
 
-bool Cppyy::NewIsNamespace(TCppScope_t handle)
-{
-    auto *D = (clang::Decl *)handle;
-    return llvm::isa_and_nonnull<clang::NamespaceDecl>(D);
-}
-
 bool Cppyy::IsAbstract(TCppType_t klass)
 {
 // Test if this type may not be instantiated.
     TClassRef& cr = type_from_handle(klass);
     if (cr.GetClass())
         return cr->Property() & kIsAbstract;
-    return false;
-}
-
-bool Cppyy::NewIsAbstract(TCppType_t klass)
-{
-// Test if this type may not be instantiated.
-    auto *D = (clang::Decl *)klass;
-    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D))
-        CXXRD->isAbstract();
-
     return false;
 }
 
@@ -1174,25 +891,12 @@ bool Cppyy::IsEnum(const std::string& type_name)
     return gInterpreter->ClassInfo_IsEnum(tn_short.c_str());
 }
 
-bool Cppyy::NewIsEnum(TCppScope_t handle)
-{
-    auto *D = (clang::Decl *)handle;
-    return llvm::isa_and_nonnull<clang::EnumDecl>(D);
-}
-
 bool Cppyy::IsAggregate(TCppType_t type)
 {
 // Test if this type is a "plain old data" type
     TClassRef& cr = type_from_handle(type);
     if (cr.GetClass())
         return cr->ClassProperty() & kClassIsAggregate;
-    return false;
-}
-
-bool Cppyy::NewIsAggregate(TCppType_t type)
-{
-    if (type == 0) return false;
-    // XXX: What todo here?
     return false;
 }
 
@@ -1203,12 +907,6 @@ bool Cppyy::IsDefaultConstructable(TCppType_t type)
     if (cr.GetClass())
         return cr->HasDefaultConstructor() || (cr->ClassProperty() & kClassIsAggregate);
     return false;
-}
-
-bool Cppyy::NewIsVariable(TCppScope_t scope)
-{
-    auto *D = (clang::Decl *)scope;
-    return llvm::isa_and_nonnull<clang::VarDecl>(D);
 }
 
 // helpers for stripping scope names
@@ -1403,25 +1101,10 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)
     return res;
 }
 
-std::vector<Cppyy::TCppScope_t> Cppyy::NewGetUsingNamespaces(TCppScope_t scope)
-{
-    auto *D = (clang::Decl *) scope;
-
-    if (auto *DC = llvm::dyn_cast_or_null<clang::DeclContext>(D)) {
-        std::vector<TCppScope_t> namespaces;
-        for (auto UD : DC->using_directives()) {
-            namespaces.push_back((TCppScope_t) UD->getNominatedNamespace());
-        }
-        return namespaces;
-    }
-
-    return {};
-}
-
 // class reflection information ----------------------------------------------
 std::string Cppyy::GetFinalName(TCppType_t klass)
 {
-    if (klass == GLOBAL_HANDLE || klass == Cppyy::NewGetGlobalScope())
+    if (klass == GLOBAL_HANDLE)
         return "";
     TClassRef& cr = type_from_handle(klass);
     std::string clName = cr->GetName();
@@ -1432,15 +1115,6 @@ std::string Cppyy::GetFinalName(TCppType_t klass)
     return clName;
 }
 
-std::string Cppyy::NewGetFinalName(TCppType_t klass)
-{
-    if (klass == Cppyy::NewGetGlobalScope())
-        return "";
-
-    auto *D = (clang::NamedDecl *) klass;
-    return D->getNameAsString();
-}
-
 std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 {
     if (klass == GLOBAL_HANDLE)
@@ -1449,108 +1123,6 @@ std::string Cppyy::GetScopedFinalName(TCppType_t klass)
     if (cr.GetClass())
         return cr->GetName();
     return "";
-}
-
-std::string Cppyy::NewGetScopedFinalName(TCppType_t klass)
-{
-    if (klass == Cppyy::NewGetGlobalScope() || klass == 0)
-        return "";
-
-    auto *D = (clang::NamedDecl *) klass;
-    return D->getQualifiedNameAsString();
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetScope(const std::string &name, TCppScope_t parent)
-{
-    clang::DeclContext *Within = 0;
-    if (parent) {
-        auto *D = (clang::Decl *)parent;
-        Within = llvm::dyn_cast<clang::DeclContext>(D);
-    }
-
-    cling::Interpreter::PushTransactionRAII RAII(cling::cppyy::gCling);
-    auto *ND = cling::utils::Lookup::Named(&cling::cppyy::Sema, name, Within);
-    if (!(ND == (clang::NamedDecl *) -1) && (llvm::isa_and_nonnull<clang::NamespaceDecl>(ND) || llvm::isa_and_nonnull<clang::RecordDecl>(ND)))
-        return (TCppScope_t)(ND->getCanonicalDecl());
-
-    return 0;
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetFullScope(const std::string &name)
-{
-    std::string delim = "::";
-    size_t start = 0;
-    size_t end = name.find(delim);
-    TCppScope_t curr_scope = 0;
-    while (end != std::string::npos)
-    {
-        curr_scope = Cppyy::NewGetScope(name.substr(start, end - start), curr_scope);
-        start = end + delim.length();
-        end = name.find(delim, start);
-    }
-    return Cppyy::NewGetScope(name.substr(start, end), curr_scope);
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetTypeScope(TCppScope_t klass) {
-    auto *D = (clang::Decl *)klass;
-    if (auto *VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
-        if (auto *Type = VD->getType().getTypePtrOrNull()) {
-            Type = Type->getPointeeOrArrayElementType()->getUnqualifiedDesugaredType();
-            return (TCppScope_t) Type->getAsCXXRecordDecl();
-        }
-    }
-    return 0;
-}
-
-
-Cppyy::TCppScope_t Cppyy::NewGetNamed(const std::string &name, TCppScope_t parent)
-{
-    clang::DeclContext *Within = 0;
-    std::string par = "";
-    if (parent) {
-        auto *D = (clang::Decl *)parent;
-        Within = llvm::dyn_cast<clang::DeclContext>(D);
-        par = Cppyy::NewGetScopedFinalName(parent);
-    }
-
-    cling::Interpreter::PushTransactionRAII RAII(cling::cppyy::gCling);
-    auto *ND = cling::utils::Lookup::Named(&cling::cppyy::Sema, name, Within);
-    if (ND && ND != (clang::NamedDecl*) -1) {
-        printf("  Lookup: Found => %s : %s\n", par.c_str(), name.c_str());
-        return (TCppScope_t)(ND->getCanonicalDecl());
-    }
-
-    printf("  Lookup: Not Found => %s : %s\n", par.c_str(), name.c_str());
-    return 0;
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetParentScope(TCppScope_t scope)
-{
-    if (scope == Cppyy::NewGetGlobalScope())
-        return 0;
-
-    auto *D = (clang::Decl *) scope;
-    auto *ParentDC = D->getDeclContext()->getParent();
-
-    if (!ParentDC)
-        return 0;
-
-    return (TCppScope_t) clang::Decl::castFromDeclContext(
-            ParentDC)->getCanonicalDecl(); 
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetScopeFromType(Cppyy::TCppType_t parent)
-{
-    auto *RD = ((clang::QualType *) parent)->getTypePtr()->getAsRecordDecl();
-    if (RD)
-        return (TCppScope_t) (RD->getCanonicalDecl());
-
-    return 0;
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetGlobalScope()
-{
-    return (TCppScope_t) cling::cppyy::Sema.getASTContext().getTranslationUnitDecl();
 }
 
 bool Cppyy::HasVirtualDestructor(TCppType_t klass)
@@ -1599,37 +1171,10 @@ Cppyy::TCppIndex_t Cppyy::GetNumBases(TCppType_t klass)
     return (TCppIndex_t)0;
 }
 
-Cppyy::TCppIndex_t Cppyy::NewGetNumBases(TCppType_t klass)
-{
-    if (!klass)
-        return 0;
-
-    auto *D = (clang::Decl *) klass;
-
-    if (auto *CRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D))
-        return CRD->getNumBases();
-
-    return 0;
-}
-
 std::string Cppyy::GetBaseName(TCppType_t klass, TCppIndex_t ibase)
 {
     TClassRef& cr = type_from_handle(klass);
     return ((TBaseClass*)cr->GetListOfBases()->At((int)ibase))->GetName();
-}
-
-Cppyy::TCppScope_t Cppyy::NewGetBaseScope(TCppType_t klass, TCppIndex_t ibase)
-{
-    auto *CXXRD = (clang::CXXRecordDecl *) klass;
-    auto type = (CXXRD->bases_begin() + ibase)->getType();
-    if (auto RT = llvm::dyn_cast<clang::RecordType>(type)) {
-        return (TCppScope_t) RT->getDecl()->getCanonicalDecl();
-    } else if (auto TST = llvm::dyn_cast<clang::TemplateSpecializationType>(type)) {
-        return (TCppScope_t) TST->getTemplateName()
-            .getAsTemplateDecl()->getCanonicalDecl();
-    }
-
-    return 0;
 }
 
 bool Cppyy::IsSubtype(TCppType_t derived, TCppType_t base)
@@ -1640,21 +1185,6 @@ bool Cppyy::IsSubtype(TCppType_t derived, TCppType_t base)
     TClassRef& base_type = type_from_handle(base);
     if (derived_type.GetClass() && base_type.GetClass())
         return derived_type->GetBaseClass(base_type) != 0;
-    return false;
-}
-
-bool Cppyy::NewIsSubclass(TCppScope_t derived, TCppScope_t base)
-{
-    if (derived == base)
-        return true;
-    auto global_scope = NewGetGlobalScope();
-    if (derived == global_scope || base == global_scope)
-        return false;
-    auto *derived_D = (clang::Decl *) derived;
-    auto *base_D = (clang::Decl *) base;
-    if (auto derived_CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(derived_D))
-        if (auto base_CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(base_D))
-            return derived_CXXRD->isDerivedFrom(base_CXXRD);
     return false;
 }
 
@@ -1776,19 +1306,6 @@ Cppyy::TCppIndex_t Cppyy::GetNumMethods(TCppScope_t scope, bool accept_namespace
     return (TCppIndex_t)0;         // unknown class?
 }
 
-std::vector<Cppyy::TCppMethod_t> Cppyy::NewGetClassMethods(TCppScope_t scope) {
-    auto *D = (clang::Decl *) scope;
-
-    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
-        std::vector<TCppMethod_t> methods;
-        for (auto it = CXXRD->method_begin(), end = CXXRD->method_end(); it != end; it++) {
-            methods.push_back((TCppMethod_t) *it);
-        }
-        return methods;
-    }
-    return {};
-}
-
 std::vector<Cppyy::TCppIndex_t> Cppyy::GetMethodIndicesFromName(
     TCppScope_t scope, const std::string& name)
 {
@@ -1824,39 +1341,6 @@ std::vector<Cppyy::TCppIndex_t> Cppyy::GetMethodIndicesFromName(
     return indices;
 }
 
-std::vector<Cppyy::TCppScope_t> Cppyy::NewGetMethodsFromName(
-        TCppScope_t scope, const std::string& name)
-{
-    auto *D = (clang::Decl *) scope;
-    std::vector<TCppScope_t> methods;
-    llvm::StringRef Name(name);
-    clang::DeclarationName DName = &(&cling::cppyy::Sema)->Context.Idents.get(name);
-    clang::LookupResult R(cling::cppyy::Sema,
-                          DName,
-                          clang::SourceLocation(),
-                          clang::Sema::LookupOrdinaryName,
-                          clang::Sema::ForVisibleRedeclaration);
-
-    cling::Interpreter::PushTransactionRAII RAII(cling::cppyy::gCling);
-    cling::utils::Lookup::Named(&cling::cppyy::Sema, R,
-            clang::Decl::castToDeclContext(D));
-
-    if (R.empty())
-        return methods;
-
-    R.resolveKind();
-
-    for (clang::LookupResult::iterator Res = R.begin(), ResEnd = R.end();
-         Res != ResEnd;
-         ++Res) {
-        if (llvm::isa<clang::CXXMethodDecl>(*Res)) {
-            methods.push_back((TCppScope_t) *Res);
-        }
-    }
-
-    return methods;
-}
-
 Cppyy::TCppMethod_t Cppyy::GetMethod(TCppScope_t scope, TCppIndex_t idx)
 {
     TClassRef& cr = type_from_handle(scope);
@@ -1883,15 +1367,6 @@ std::string Cppyy::GetMethodName(TCppMethod_t method)
     return "<unknown>";
 }
 
-std::string Cppyy::NewGetMethodName(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getNameAsString();
-    }
-    return "";
-}
-
 std::string Cppyy::GetMethodFullName(TCppMethod_t method)
 {
     if (method) {
@@ -1900,15 +1375,6 @@ std::string Cppyy::GetMethodFullName(TCppMethod_t method)
         return name;
     }
     return "<unknown>";
-}
-
-std::string Cppyy::NewGetMethodFullName(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getQualifiedNameAsString();
-    }
-    return "";
 }
 
 std::string Cppyy::GetMethodMangledName(TCppMethod_t method)
@@ -1953,28 +1419,10 @@ std::string Cppyy::GetMethodResultType(TCppMethod_t method)
     return "<unknown>";
 }
 
-std::string Cppyy::NewGetMethodReturnTypeAsString(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getReturnType().getAsString();
-    }
-    return "";
-}
-
 Cppyy::TCppIndex_t Cppyy::GetMethodNumArgs(TCppMethod_t method)
 {
     if (method)
         return m2f(method)->GetNargs();
-    return 0;
-}
-
-Cppyy::TCppIndex_t Cppyy::NewGetMethodNumArgs(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getNumParams();
-    }
     return 0;
 }
 
@@ -1985,15 +1433,6 @@ Cppyy::TCppIndex_t Cppyy::GetMethodReqArgs(TCppMethod_t method)
         return (TCppIndex_t)(f->GetNargs() - f->GetNargsOpt());
     }
     return (TCppIndex_t)0;
-}
-
-Cppyy::TCppIndex_t Cppyy::NewGetMethodReqArgs(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl> (D)) {
-        return CXXMD->getMinRequiredArguments();
-    }
-    return 0;
 }
 
 std::string Cppyy::GetMethodArgName(TCppMethod_t method, TCppIndex_t iarg)
@@ -2020,19 +1459,6 @@ std::string Cppyy::GetMethodArgType(TCppMethod_t method, TCppIndex_t iarg)
         return arg->GetTypeNormalizedName();
     }
     return "<unknown>";
-}
-
-std::string Cppyy::NewGetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
-{
-    auto *D = (clang::Decl *) method;
-
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        if (iarg < CXXMD->getNumParams()) {
-            auto *PVD = CXXMD->getParamDecl(iarg);
-            return PVD->getOriginalType().getAsString();
-        }
-    }
-    return "";
 }
 
 std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
@@ -2069,15 +1495,6 @@ std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formalargs,
         }
         sig << ")";
         return sig.str();
-    }
-    return "<unknown>";
-}
-
-std::string Cppyy::NewGetMethodSignature(TCppMethod_t method, bool show_formalargs, TCppIndex_t maxargs)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        printf("%s\n", CXXMD->getFunctionType()->getTypeClassName());
     }
     return "<unknown>";
 }
@@ -2168,19 +1585,6 @@ bool Cppyy::ExistsMethodTemplate(TCppScope_t scope, const std::string& name)
     return false;
 }
 
-bool Cppyy::NewExistsMethodTemplate(TCppScope_t scope, const std::string& name)
-{
-    auto *D = (clang::Decl *) scope;
-    if (llvm::isa_and_nonnull<clang::DeclContext>(D)) {
-        auto *ND = cling::utils::Lookup::Named(&cling::cppyy::Sema, name,
-                clang::Decl::castToDeclContext(D));
-        if ((bool) ND)
-            return true;
-    }
-
-    return false;
-}
-
 bool Cppyy::IsMethodTemplate(TCppScope_t scope, TCppIndex_t idx)
 {
     TClassRef& cr = type_from_handle(scope);
@@ -2192,19 +1596,6 @@ bool Cppyy::IsMethodTemplate(TCppScope_t scope, TCppIndex_t idx)
 
     assert(scope == (Cppyy::TCppType_t)GLOBAL_HANDLE);
     if (((CallWrapper*)idx)->fName.find('<') != std::string::npos) return true;
-    return false;
-}
-
-bool Cppyy::NewIsTemplatedMethod(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        auto TK = CXXMD->getTemplatedKind();
-        return TK == clang::FunctionDecl::TemplatedKind::TK_FunctionTemplateSpecialization
-            || TK == clang::FunctionDecl::TemplatedKind::TK_DependentFunctionTemplateSpecialization
-            || TK == clang::FunctionDecl::TemplatedKind::TK_FunctionTemplate ;
-    }
-
     return false;
 }
 
@@ -2365,32 +1756,12 @@ bool Cppyy::IsPublicMethod(TCppMethod_t method)
     return false;
 }
 
-bool Cppyy::NewIsPublicMethod(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getAccess() == clang::AccessSpecifier::AS_public;
-    }
-
-    return false;
-}
-
 bool Cppyy::IsProtectedMethod(TCppMethod_t method)
 {
     if (method) {
         TFunction* f = m2f(method);
         return f->Property() & kIsProtected;
     }
-    return false;
-}
-
-bool Cppyy::NewIsProtectedMethod(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->getAccess() == clang::AccessSpecifier::AS_protected;
-    }
-
     return false;
 }
 
@@ -2403,16 +1774,6 @@ bool Cppyy::IsConstructor(TCppMethod_t method)
     return false;
 }
 
-bool Cppyy::NewIsConstructor(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return llvm::isa_and_nonnull<clang::CXXConstructorDecl>(CXXMD);
-    }
-
-    return false;
-}
-
 bool Cppyy::IsDestructor(TCppMethod_t method)
 {
     if (method) {
@@ -2422,32 +1783,12 @@ bool Cppyy::IsDestructor(TCppMethod_t method)
     return false;
 }
 
-bool Cppyy::NewIsDestructor(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return llvm::isa_and_nonnull<clang::CXXDestructorDecl>(CXXMD);
-    }
-
-    return false;
-}
-
 bool Cppyy::IsStaticMethod(TCppMethod_t method)
 {
     if (method) {
         TFunction* f = m2f(method);
         return f->Property() & kIsStatic;
     }
-    return false;
-}
-
-bool Cppyy::NewIsStaticMethod(TCppMethod_t method)
-{
-    auto *D = (clang::Decl *) method;
-    if (auto *CXXMD = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(D)) {
-        return CXXMD->isStatic();
-    }
-
     return false;
 }
 
@@ -2468,39 +1809,17 @@ const clang::Decl *getDeclContextFromHandle(Cppyy::TCppType_t handle) {
 // data member reflection information ----------------------------------------
 Cppyy::TCppIndex_t Cppyy::GetNumDatamembers(TCppScope_t scope, bool accept_namespace)
 {
-    const clang::Decl* D = getDeclFromHandle(scope);
-    if (!D) {
-        return (TCppIndex_t)0;
-    }
-
-    if (!accept_namespace && llvm::isa<clang::NamespaceDecl>(D))
+    if (!accept_namespace && IsNamespace(scope))
         return (TCppIndex_t)0;     // enforce lazy
 
-    if (llvm::isa<clang::TranslationUnitDecl>(D)){
-        auto DeclRange = D->getDeclContext()->noload_decls();
-        return std::distance(DeclRange.begin(), DeclRange.end());
-    }
+    if (scope == GLOBAL_HANDLE)
+        return gROOT->GetListOfGlobals(true)->GetSize();
 
-    if (auto RD = llvm::dyn_cast<const clang::RecordDecl>(D)) {
-        RD = RD->getDefinition();
-        return std::distance(RD->field_begin(), RD->field_end());
-    }
+    TClassRef& cr = type_from_handle(scope);
+    if (cr.GetClass() && cr->GetListOfDataMembers())
+        return cr->GetListOfDataMembers()->GetSize();
 
     return (TCppIndex_t)0;         // unknown class?
-}
-
-std::vector<Cppyy::TCppScope_t> Cppyy::NewGetDatamembers(TCppScope_t scope)
-{
-    auto *D = (clang::Decl *) scope;
-
-    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
-        std::vector<TCppScope_t> datamembers;
-        for (auto it = CXXRD->field_begin(), end = CXXRD->field_end(); it != end ; it++) {
-            datamembers.push_back((TCppScope_t) *it);
-        }
-        return datamembers;
-    }
-    return {};
 }
 
 std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)
@@ -2574,17 +1893,6 @@ std::string Cppyy::GetDatamemberType(TCppScope_t scope, TCppIndex_t idata)
     return "<unknown>";
 }
 
-std::string Cppyy::NewGetDatamemberTypeAsString(TCppScope_t scope)
-{
-    auto D = (clang::Decl *) scope;
-
-    if (auto VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
-        return VD->getType().getAsString();
-    }
-
-    return "";
-}
-
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
 {
     if (scope == GLOBAL_HANDLE) {
@@ -2619,37 +1927,6 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
     }
 
     return (intptr_t)-1;
-}
-
-intptr_t Cppyy::NewGetDatamemberOffset(TCppScope_t scope, TCppScope_t idata)
-{
-    auto *D = (clang::Decl *) idata;
-    printf("hoop\n");
-    if (scope == NewGetGlobalScope() || Cppyy::NewIsNamespace(scope)) {
-        if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
-            auto GD = clang::GlobalDecl(VD);
-            std::string mangledName;
-            cling::utils::Analyze::maybeMangleDeclName(GD, mangledName);
-            auto address = dlsym(/*whole_process=*/0, mangledName.c_str());
-            if (!address)
-                address = cling::cppyy::gCling->getAddressOfGlobal(GD);
-            printf("here\n");
-            return (intptr_t) address;
-        }
-    }
-
-    if (auto *CXXRD = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(D)) {
-        if (llvm::isa_and_nonnull<clang::VarDecl>(D)) {
-            return (intptr_t) cling::cppyy::gCling->process((std::string("&")+NewGetScopedFinalName(idata)+";").c_str());
-        }
-        if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
-            auto &ASTCxt = cling::cppyy::Sema.getASTContext();
-            return (intptr_t) ASTCxt.toCharUnitsFromBits(
-                    ASTCxt.getASTRecordLayout(CXXRD)
-                          .getFieldOffset(FD->getFieldIndex())).getQuantity();
-        }
-    }
-    return 0;
 }
 
 static inline
@@ -2723,73 +2000,27 @@ Cppyy::TCppIndex_t Cppyy::GetDatamemberIndexEnumerated(TCppScope_t scope, TCppIn
     return idata;
 }
 
-bool Cppyy::NewCheckDatamember(TCppScope_t scope, const std::string& name)
-{
-    auto *D = (clang::Decl *) scope;
-    cling::Interpreter::PushTransactionRAII RAII(cling::cppyy::gCling);
-    auto *ND = cling::utils::Lookup::Named(&cling::cppyy::Sema,
-                                           name,
-                                           clang::Decl::castToDeclContext(D));
-    return (bool) ND;
-}
-
-bool CheckAccess(Cppyy::TCppScope_t scope, Cppyy::TCppIndex_t idata, clang::AccessSpecifier access) {
-    const clang::Decl* D = getDeclFromHandle(scope);
-
-    if (llvm::isa<clang::TranslationUnitDecl>(D) || llvm::isa<clang::NamespaceDecl>(D))
-        return true;
-
-    size_t idx = (size_t)idata;
-    if (const clang::RecordDecl *RD = llvm::dyn_cast<const clang::RecordDecl>(D)) {
-        RD = RD->getDefinition();
-        size_t sizeRD = std::distance(RD->field_begin(), RD->field_end());
-        if (idx >= sizeRD) {
-            return false;
-        }
-
-        auto RDFI = RD->field_begin();
-        while (idx--) {
-            ++RDFI;
-        }
-        clang::FieldDecl *FD = *RDFI;
-        auto FDA = FD->getAccess();
-        bool ret = FDA == access;
-        return ret;
-    }
-    return false;
-}
-
 // data member properties ----------------------------------------------------
 bool Cppyy::IsPublicData(TCppScope_t scope, TCppIndex_t idata)
 {
-    return CheckAccess(scope, idata, clang::AS_public);
-}
-
-bool Cppyy::NewIsPublicData(TCppScope_t data)
-{
-    auto *D = (clang::Decl *) data;
-
-    if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
-        return FD->getAccess() == clang::AS_public;
-    }
-
-    return false;
+    if (scope == GLOBAL_HANDLE)
+        return true;
+    TClassRef& cr = type_from_handle(scope);
+    if (cr->Property() & kIsNamespace)
+        return true;
+    TDataMember* m = (TDataMember*)cr->GetListOfDataMembers()->At((int)idata);
+    return m->Property() & kIsPublic;
 }
 
 bool Cppyy::IsProtectedData(TCppScope_t scope, TCppIndex_t idata)
 {
-    return CheckAccess(scope, idata, clang::AS_protected);
-}
-
-bool Cppyy::NewIsProtectedData(TCppScope_t data)
-{
-    auto *D = (clang::Decl *) data;
-
-    if (auto *FD = llvm::dyn_cast_or_null<clang::FieldDecl>(D)) {
-        return FD->getAccess() == clang::AS_protected;
-    }
-
-    return false;
+    if (scope == GLOBAL_HANDLE)
+        return true;
+    TClassRef& cr = type_from_handle(scope);
+    if (cr->Property() & kIsNamespace)
+        return true;
+    TDataMember* m = (TDataMember*)cr->GetListOfDataMembers()->At((int)idata);
+    return m->Property() & kIsProtected;
 }
 
 bool Cppyy::IsStaticData(TCppScope_t scope, TCppIndex_t idata)
@@ -2801,17 +2032,6 @@ bool Cppyy::IsStaticData(TCppScope_t scope, TCppIndex_t idata)
         return true;
     TDataMember* m = (TDataMember*)cr->GetListOfDataMembers()->At((int)idata);
     return m->Property() & kIsStatic;
-}
-
-bool Cppyy::NewIsStaticDatamember(TCppScope_t var)
-{
-    auto *D = (clang::Decl *) var;
-    if (auto *VD = llvm::dyn_cast_or_null<clang::VarDecl>(D)) {
-        return true;
-        // return VD->isStaticDataMember();
-    }
-
-    return false;
 }
 
 bool Cppyy::IsConstData(TCppScope_t scope, TCppIndex_t idata)
@@ -2832,16 +2052,6 @@ bool Cppyy::IsConstData(TCppScope_t scope, TCppIndex_t idata)
     return ((property & kIsConstant) && !(property & (kIsPointer | kIsArray))) || (property & kIsConstPointer);
 }
 
-bool Cppyy::NewIsConstVar(TCppScope_t var)
-{
-    auto *D = (clang::Decl *) var;
-
-    if (auto *VD = llvm::dyn_cast_or_null<clang::ValueDecl>(D)) {
-        return VD->getType().isConstQualified();
-    }
-
-    return false;
-}
 
 bool Cppyy::IsEnumData(TCppScope_t scope, TCppIndex_t idata)
 {

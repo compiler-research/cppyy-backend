@@ -89,7 +89,7 @@ ROOT_LINKER_LIBRARY(ClingWrappers
     DEPENDENCIES CoreLegacy ThreadLegacy Cling RIOLegacy
 )
 
-target_include_directories(ClingWrappers PUBLIC 
+target_include_directories(ClingWrappers PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 if(MSVC)

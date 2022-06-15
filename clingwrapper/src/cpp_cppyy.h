@@ -7,6 +7,16 @@
 #include <vector>
 #include <stddef.h>
 #include <stdint.h>
+#include <iostream>
+
+#include "callcontext.h"
+
+// #include "TCling.h"
+
+#include "cling/Interpreter/Interpreter.h"
+#include "clang/AST/Decl.h"
+
+#include "clang/Frontend/CompilerInstance.h"
 
 // some more types; assumes Cppyy.h follows Python.h
 #ifndef PY_LONG_LONG
@@ -28,6 +38,25 @@ typedef unsigned long long PY_ULONG_LONG;
 #ifndef PY_LONG_DOUBLE
 typedef long double PY_LONG_DOUBLE;
 #endif
+
+typedef CPyCppyy::Parameter Parameter;
+
+// small number that allows use of stack for argument passing
+const int SMALL_ARGS_N = 8;
+
+// convention to pass flag for direct calls (similar to Python's vector calls)
+#define DIRECT_CALL ((size_t)1 << (8 * sizeof(size_t) - 1))
+static inline size_t CALL_NARGS(size_t nargs) {
+    return nargs & ~DIRECT_CALL;
+}
+
+namespace cling
+{
+namespace cppyy
+{
+    extern cling::Interpreter * gCling;
+}
+}
 
 
 namespace Cppyy {
@@ -80,7 +109,7 @@ namespace Cppyy {
     bool        IsComplete(const std::string& type_name);
 
     RPY_EXPORTED
-    TCppScope_t gGlobalScope;      // for fast access
+    inline TCppScope_t gGlobalScope = 0;      // for fast access
 
 // memory management ---------------------------------------------------------
     RPY_EXPORTED
@@ -364,5 +393,32 @@ namespace Cppyy {
     long long   GetEnumDataValue(TCppEnum_t, TCppIndex_t idata);
 
 } // namespace Cppyy
+
+
+class CallWrapper {
+public:
+    typedef const void* DeclId_t;
+
+public:
+    CallWrapper(void * f) : fDecl(nullptr), fName(""), fTF(nullptr) { assert(0); }
+    CallWrapper(DeclId_t fid, const std::string& n) : fDecl(fid), fName(n), fTF(nullptr) {}
+    ~CallWrapper() {}
+
+public:
+    cling::Interpreter::CallFuncIFacePtr_t fFaceptr;
+    DeclId_t      fDecl;
+    std::string   fName;
+    void *    fTF;
+};
+
+
+
+inline std::vector<CallWrapper*> gWrapperHolder;
+
+inline
+CallWrapper* new_CallWrapper(CallWrapper::DeclId_t fid, const std::string& n);
+
+inline
+bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* self, void* result);
 
 #endif // !CPYCPPYY_CPPYY_H
