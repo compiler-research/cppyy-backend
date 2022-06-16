@@ -50,15 +50,6 @@ static inline size_t CALL_NARGS(size_t nargs) {
     return nargs & ~DIRECT_CALL;
 }
 
-namespace cling
-{
-namespace cppyy
-{
-    extern cling::Interpreter * gCling;
-}
-}
-
-
 namespace Cppyy {
     typedef size_t      TCppScope_t;
     typedef TCppScope_t TCppType_t;

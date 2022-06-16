@@ -9,6 +9,7 @@
 #include "capi.h"
 #include "cpp_cppyy.h"
 #include "callcontext.h"
+#include "gcling.h"
 
 // Cling
 #include "cling/Utils/AST.h"
