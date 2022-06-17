@@ -274,7 +274,6 @@ public:
                "#include <utility>\n"
                "#include \"cling/Interpreter/Interpreter.h\"";
         gInterpreter->ProcessLine(code);
-        gInterpreter->ProcessLine(".I");
 
     // create helpers for comparing thingies
         gInterpreter->Declare(
@@ -1899,7 +1898,7 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
         TGlobal* gbl = g_globalvars[idata];
         if (!gbl->GetAddress() || gbl->GetAddress() == (void*)-1) {
         // CLING WORKAROUND: make sure variable is loaded
-            intptr_t addr = (intptr_t)cling::cppyy::gCling->process((std::string("&")+gbl->GetName()+";").c_str());
+            intptr_t addr = (intptr_t)gInterpreter->ProcessLine((std::string("&")+gbl->GetName()+";").c_str());
             if (gbl->GetAddress() && gbl->GetAddress() != (void*)-1)
                 return (intptr_t)gbl->GetAddress();        // now loaded!
             return addr;                                   // last resort ...
@@ -1916,11 +1915,11 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t scope, TCppIndex_t idata)
         intptr_t offset = (intptr_t)-1;
         if (m->Property() & kIsStatic) {
             if (strchr(cr->GetName(), '<'))
-                cling::cppyy::gCling->process(((std::string)cr->GetName()+"::"+m->GetName()+";").c_str());
+                gInterpreter->ProcessLine(((std::string)cr->GetName()+"::"+m->GetName()+";").c_str());
             offset = (intptr_t)m->GetOffsetCint();    // yes, CINT (GetOffset() is both wrong
                                                       // and caches that wrong result!
             if (offset == (intptr_t)-1)
-                return (intptr_t)cling::cppyy::gCling->process((std::string("&")+cr->GetName()+"::"+m->GetName()+";").c_str());
+                return (intptr_t)gInterpreter->ProcessLine((std::string("&")+cr->GetName()+"::"+m->GetName()+";").c_str());
         } else
             offset = (intptr_t)m->GetOffsetCint();    // yes, CINT, see above
         return offset;
@@ -1969,7 +1968,7 @@ Cppyy::TCppIndex_t Cppyy::GetDatamemberIndex(TCppScope_t scope, const std::strin
             s << "auto __cppyy_internal_wrap_" << name << " = "
                  "new __cling_internal::FT<decltype(" << name << ")>::F"
                  "{" << name << "};";
-            cling::cppyy::gCling->process(s.str().c_str());
+            gInterpreter->ProcessLine(s.str().c_str());
             TGlobal* wrap = (TGlobal*)gROOT->GetListOfGlobals(true)->FindObject(
                 ("__cppyy_internal_wrap_"+name).c_str());
             if (wrap && wrap->GetAddress()) gb = wrap;

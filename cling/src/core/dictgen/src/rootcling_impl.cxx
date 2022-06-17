@@ -124,6 +124,7 @@ const std::string gPathSeparator(CppyyLegacy::TMetaUtils::GetPathSeparator());
 #include <unistd.h>
 #endif
 
+namespace cling { namespace cppyy { cling::Interpreter* gCling; } }
 
 using namespace CppyyLegacy;
 

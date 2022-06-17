@@ -1,3 +1,6 @@
+#ifndef CPYCPPYY_GCLING_H
+#define CPYCPPYY_GCLING_H
+
 namespace cling
 {
     class Interpreter;
@@ -11,3 +14,4 @@ namespace cppyy
 }
 }
 
+#endif // CPYCPPYY_GCLING_H
