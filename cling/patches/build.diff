@@ -2,7 +2,16 @@ diff --git a/src/interpreter/CMakeLists.txt b/src/interpreter/CMakeLists.txt
 index 39dc895cce..6d616cb354 100644
 --- a/src/interpreter/CMakeLists.txt
 +++ b/src/interpreter/CMakeLists.txt
-@@ -481,7 +481,8 @@ else()
+@@ -126,6 +128,8 @@ if(clingtest)
+   endif()
+   ROOT_ADD_TEST(clingtest-check-cling COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-cling
+                                        ENVIRONMENT ${CLINGTEST_EXECUTABLE})
++  set(CMAKE_CXX_VISIBILITY_PRESET default)
++  set(CMAKE_C_VISIBILITY_PRESET default)
+ else()
+   #---Build LLVM/Clang with symbol visibility=hidden--------------------------------------------------
+   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+@@ -483,7 +483,8 @@ else()
    set(Clang_DIR "${LLVM_BINARY_DIR}/lib/cmake/clang/")
  endif()
  
@@ -20,8 +29,7 @@ index 7002e43f36..dfdf718685 100644
      set(CLING_CXXFLAGS " ${LLVM_DEFS} -DNOMINMAX -D_XKEYCHECK_H")
    else()
      # FIXME: Work hard to remove -Wno-shadow and -Wno-unused-parameter
--    set(CLING_CXXFLAGS " ${LLVM_DEFS} -fno-strict-aliasing -Wwrite-strings -Wno-shadow -Wno-unused-parameter -Wno-deprecated-declarations")
-+    set(CLING_CXXFLAGS " ${LLVM_DEFS} -fvisibility=hidden -fno-strict-aliasing -Wwrite-strings -Wno-shadow -Wno-unused-parameter -Wno-deprecated-declarations")
+     set(CLING_CXXFLAGS " ${LLVM_DEFS} -fno-strict-aliasing -Wwrite-strings -Wno-shadow -Wno-unused-parameter -Wno-deprecated-declarations")
 +    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 +      string(APPEND CLING_CXXFLAGS " -Wl,-Bsymbolic")
 +    endif()
