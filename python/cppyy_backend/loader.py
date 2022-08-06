@@ -44,7 +44,7 @@ def _load_helper(bkname):
             pkgpath = os.path.dirname(__file__)
         elif os.path.basename(pkgpath) in ['lib', 'bin']:
             pkgpath = os.path.dirname(pkgpath)
-        for dep in ['libCoreLegacy', 'libThreadLegacy', 'libRIOLegacy', 'libCling']:
+        for dep in ['libcling']:
             for loc in ['lib', 'bin']:
                 fpath = os.path.join(pkgpath, loc, dep+soext)
                 if os.path.exists(fpath):
@@ -75,11 +75,11 @@ def load_cpp_backend():
             bkname += soext
         names.append(bkname)
     except KeyError:
-        names.append('libcppyy_backend'+soext)
+        names.append('libcppyy-backend'+soext)
         if soabi:
-            names.append('libcppyy_backend.'+soabi+soext)
+            names.append('libcppyy-backend.'+soabi+soext)
         if soext2:
-            names.append('libcppyy_backend'+soext2)
+            names.append('libcppyy-backend'+soext2)
 
     err = set()
     for name in names:
