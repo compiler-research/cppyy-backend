@@ -209,8 +209,6 @@ public:
     ApplicationStarter() {
         // Create the interpreter and initilize the pointer
         gInterp = createInterpreter();
-        cling::DynamicLibraryManager *gDynLibManager =
-            gInterp->getDynamicLibraryManager();
 
         // fill out the builtins
         std::set<std::string> bi{g_builtins};
@@ -247,7 +245,7 @@ public:
                "#include <utility>\n"
                "#include <memory>\n"
                "#include \"cling/Interpreter/Interpreter.h\"\n"
-               "#include \"cling/Interpreter/DynamicLibraryManager.h\"";
+               "#include \"cling/Interpreter/InterOp.h\"";
         gInterp->process(code);
 
     // create helpers for comparing thingies
@@ -264,7 +262,7 @@ public:
     // helper for multiple inheritance
         gInterp->declare("namespace __cppyy_internal { struct Sep; }");
 
-        std::string libInterOp = gDynLibManager->lookupLibrary("libcling");
+        std::string libInterOp = gInterp->getDynamicLibraryManager()->lookupLibrary("libcling");
         void *interopDL = dlopen(libInterOp.c_str(), RTLD_LAZY);
         if (!interopDL) {
             std::cerr << "libInterop could not be opened!\n";
@@ -366,8 +364,7 @@ std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 std::string Cppyy::ResolveName(const std::string& cppitem_name)
 {
     printf("Resolve name input = %s\n", cppitem_name.c_str());
-    
-    return cppitem_name;
+
 // // Fully resolve the given name to the final type name.
 //
 // // try memoized type cache, in case seen before
@@ -444,6 +441,10 @@ std::string Cppyy::ResolveName(const std::string& cppitem_name)
 //     return "const " + TClassEdit::ShortType(tclean.c_str(), 2);
 }
 
+
+Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
+    return cling::InterOp::GetCanonicalType(type);
+}
 
 // //----------------------------------------------------------------------------
 // static std::string extract_namespace(const std::string& name)
@@ -537,7 +538,9 @@ std::string Cppyy::ResolveName(const std::string& cppitem_name)
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
                                    TCppScope_t parent_scope)
 {
-    if (name.find("::") != std::string::npos) printf("Wrong call to GetScope");
+    if (name.find("::") != std::string::npos) {
+        printf("Wrong call to GetScope\n");
+    }
 
     return cling::InterOp::GetScope(
         (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
@@ -725,40 +728,188 @@ bool Cppyy::IsComplete(TCppScope_t scope)
 //         }
 //     }
 // }
-//
-// char* Cppyy::CallS(
-//     TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, size_t* length)
-// {
-//     char* cstr = nullptr;
-//     CppyyLegacy::TClassRef cr("std::string");
-//     std::string* cppresult = (std::string*)malloc(sizeof(std::string));
-//     if (WrapperCall(method, nargs, args, self, (void*)cppresult)) {
-//         cstr = cppstring_to_cstring(*cppresult);
-//         *length = cppresult->size();
-//         cppresult->std::string::~basic_string();
-//     } else
-//         *length = 0;
-//     free((void*)cppresult);
-//     return cstr;
+
+static inline
+bool copy_args(Parameter* args, size_t nargs, void** vargs)
+{
+    bool runRelease = false;
+    for (size_t i = 0; i < nargs; ++i) {
+        switch (args[i].fTypeCode) {
+        case 'X':       /* (void*)type& with free */
+            runRelease = true;
+        case 'V':       /* (void*)type& */
+            vargs[i] = args[i].fValue.fVoidp;
+            break;
+        case 'r':       /* const type& */
+            vargs[i] = args[i].fRef;
+            break;
+        default:        /* all other types in union */
+            vargs[i] = (void*)&args[i].fValue.fVoidp;
+            break;
+        }
+    }
+    return runRelease;
+}
+
+static inline
+void release_args(Parameter* args, size_t nargs) {
+    for (size_t i = 0; i < nargs; ++i) {
+        if (args[i].fTypeCode == 'X')
+            free(args[i].fValue.fVoidp);
+    }
+}
+
+// static inline
+// bool is_ready(CallWrapper* wrap, bool is_direct) {
+//     return (!is_direct && wrap->fFaceptr.fGeneric) || (is_direct && wrap->fFaceptr.fDirect);
 // }
-//
+
+static inline
+bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* self, void* result)
+{
+    Parameter* args = (Parameter*)args_;
+    bool is_direct = nargs & DIRECT_CALL;
+    nargs = CALL_NARGS(nargs);
+
+    // CallWrapper* wrap = (CallWrapper*)method;
+    const cling::InterOp::CallFuncWrapper_t& faceptr = 
+        cling::InterOp::GetFunctionCallWrapper((cling::InterOp::TInterp_t) gInterp.get(), method);
+    // if (!is_ready(wrap, is_direct))
+    //     return false;        // happens with compilation error
+
+    nargs = CALL_NARGS(nargs);
+    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kGeneric) {
+    bool runRelease = false;
+    const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
+    if (nargs <= SMALL_ARGS_N) {
+        void* smallbuf[SMALL_ARGS_N];
+        if (nargs) runRelease = copy_args(args, nargs, smallbuf);
+        // CLING_CATCH_UNCAUGHT_
+        printf("start execution\n");
+        fgen(self, (int)nargs, smallbuf, result);
+        printf("executed\n");
+        // _CLING_CATCH_UNCAUGHT
+    } else {
+        std::vector<void*> buf(nargs);
+        runRelease = copy_args(args, nargs, buf.data());
+        // CLING_CATCH_UNCAUGHT_
+        fgen(self, (int)nargs, buf.data(), result);
+        // _CLING_CATCH_UNCAUGHT
+    }
+    if (runRelease) release_args(args, nargs);
+    return true;
+    // }
+
+    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kCtor) {
+    //     bool runRelease = false;
+    //     if (nargs <= SMALL_ARGS_N) {
+    //         void* smallbuf[SMALL_ARGS_N];
+    //         if (nargs) runRelease = copy_args(args, nargs, (void**)smallbuf);
+    //         // CLING_CATCH_UNCAUGHT_
+    //         faceptr.fCtor((void**)smallbuf, result, (unsigned long)nargs);
+    //         // _CLING_CATCH_UNCAUGHT
+    //     } else {
+    //         std::vector<void*> buf(nargs);
+    //         runRelease = copy_args(args, nargs, buf.data());
+    //         // CLING_CATCH_UNCAUGHT_
+    //         faceptr.fCtor(buf.data(), result, (unsigned long)nargs);
+    //         // _CLING_CATCH_UNCAUGHT
+    //     }
+    //     if (runRelease) release_args(args, nargs);
+    //     return true;
+    // }
+
+    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kDtor) {
+    //     std::cerr << " DESTRUCTOR NOT IMPLEMENTED YET! " << std::endl;
+    //     return false;
+    // }
+
+    return false;
+}
+
+template<typename T>
+static inline
+T CallT(Cppyy::TCppMethod_t method, Cppyy::TCppObject_t self, size_t nargs, void* args)
+{
+    T t{};
+    if (WrapperCall(method, nargs, args, (void*)self, &t))
+        return t;
+    throw std::runtime_error("failed to resolve function");
+    return (T)-1;
+}
+
+#define CPPYY_IMP_CALL(typecode, rtype)                                      \
+rtype Cppyy::Call##typecode(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)\
+{                                                                            \
+    return CallT<rtype>(method, self, nargs, args);                          \
+}
+
+void Cppyy::CallV(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)
+{
+    if (!WrapperCall(method, nargs, args, (void*)self, nullptr))
+        return /* TODO ... report error */;
+}
+
+CPPYY_IMP_CALL(B,  unsigned char)
+CPPYY_IMP_CALL(C,  char         )
+CPPYY_IMP_CALL(H,  short        )
+CPPYY_IMP_CALL(I,  int          )
+CPPYY_IMP_CALL(L,  long         )
+CPPYY_IMP_CALL(LL, long long    )
+CPPYY_IMP_CALL(F,  float        )
+CPPYY_IMP_CALL(D,  double       )
+CPPYY_IMP_CALL(LD, long double  )
+
+void* Cppyy::CallR(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)
+{
+    void* r = nullptr;
+    if (WrapperCall(method, nargs, args, (void*)self, &r))
+        return r;
+    return nullptr;
+}
+
+char* Cppyy::CallS(
+    TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, size_t* length)
+{
+    char* cstr = nullptr;
+    // TClassRef cr("std::string"); // TODO: Why is this required?
+    std::string* cppresult = (std::string*)malloc(sizeof(std::string));
+    if (WrapperCall(method, nargs, args, self, (void*)cppresult)) {
+        cstr = cppstring_to_cstring(*cppresult);
+        *length = cppresult->size();
+        cppresult->std::string::~basic_string();
+    } else
+        *length = 0;
+    free((void*)cppresult);
+    return cstr;
+}
+
+Cppyy::TCppObject_t Cppyy::CallConstructor(
+    TCppMethod_t method, TCppType_t /* klass */, size_t nargs, void* args)
+{
+    void* obj = nullptr;
+    if (WrapperCall(method, nargs, args, nullptr, &obj))
+        return (TCppObject_t)obj;
+    return (TCppObject_t)0;
+}
+
 // void Cppyy::CallDestructor(TCppType_t type, TCppObject_t self)
 // {
 //     TClassRef& cr = type_from_handle(type);
 //     cr->Destructor((void*)self, true);
 // }
-//
-// Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
-//     TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)
-// {
-//     TClassRef& cr = type_from_handle(result_type);
-//     void* obj = ::operator new(gInterpreter->ClassInfo_Size(cr->GetClassInfo()));
-//     if (WrapperCall(method, nargs, args, self, obj))
-//         return (TCppObject_t)obj;
-//     ::operator delete(obj);
-//     return (TCppObject_t)0;
-// }
-//
+
+Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
+    TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)
+{
+    void* obj = ::operator new(cling::InterOp::GetSizeOfType(
+        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), result_type));
+    if (WrapperCall(method, nargs, args, self, obj))
+        return (TCppObject_t)obj;
+    ::operator delete(obj);
+    return (TCppObject_t)0;
+}
+
 Cppyy::TCppFuncAddr_t Cppyy::GetFunctionAddress(TCppMethod_t method, bool check_enabled)
 {
     return (TCppFuncAddr_t) cling::InterOp::GetFunctionAddress(
@@ -1600,6 +1751,11 @@ std::string Cppyy::GetDatamemberTypeAsString(TCppScope_t scope)
 {
     return cling::InterOp::GetTypeAsString(
         cling::InterOp::GetVariableType(scope));
+}
+
+std::string Cppyy::GetTypeAsString(TCppType_t type)
+{
+    return cling::InterOp::GetTypeAsString(type);
 }
 
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)

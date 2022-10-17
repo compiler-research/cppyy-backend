@@ -79,6 +79,8 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string ResolveName(const std::string& cppitem_name);
     RPY_EXPORTED
+    TCppType_t ResolveType(TCppType_t cppitem_name);
+    RPY_EXPORTED
     std::string ResolveEnum(const std::string& enum_type) { return enum_type; }
     RPY_EXPORTED
     TCppScope_t GetScope(const std::string& scope_name,
@@ -127,36 +129,36 @@ namespace Cppyy {
 //
 // // method/function dispatching -----------------------------------------------
     RPY_EXPORTED
-    void          CallV(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return; }
+    void          CallV(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    unsigned char CallB(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    unsigned char CallB(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    char          CallC(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    char          CallC(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    short         CallH(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    short         CallH(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    int           CallI(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    int           CallI(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    long          CallL(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    long          CallL(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    PY_LONG_LONG  CallLL(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    PY_LONG_LONG  CallLL(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    float         CallF(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    float         CallF(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    double        CallD(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    double        CallD(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    PY_LONG_DOUBLE CallLD(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    PY_LONG_DOUBLE CallLD(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
 
     RPY_EXPORTED
-    void*         CallR(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args) { return 0; }
+    void*         CallR(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args);
     RPY_EXPORTED
-    char*         CallS(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, size_t* length) { return 0; }
+    char*         CallS(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, size_t* length);
     RPY_EXPORTED
-    TCppObject_t  CallConstructor(TCppMethod_t method, TCppType_t type, size_t nargs, void* args) { return 0; }
+    TCppObject_t  CallConstructor(TCppMethod_t method, TCppType_t type, size_t nargs, void* args);
     RPY_EXPORTED
     void          CallDestructor(TCppType_t type, TCppObject_t self) { return; }
     RPY_EXPORTED
-    TCppObject_t  CallO(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)  { return 0; }
+    TCppObject_t  CallO(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, TCppType_t result_type);
 
     RPY_EXPORTED
     TCppFuncAddr_t GetFunctionAddress(TCppMethod_t method, bool check_enabled=true);
@@ -312,6 +314,8 @@ namespace Cppyy {
     TCppType_t GetDatamemberType(TCppScope_t data);
     RPY_EXPORTED
     std::string GetDatamemberTypeAsString(TCppScope_t var);
+    RPY_EXPORTED
+    std::string GetTypeAsString(TCppType_t type);
     RPY_EXPORTED
     intptr_t    GetDatamemberOffset(TCppScope_t var);
     RPY_EXPORTED
