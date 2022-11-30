@@ -81,7 +81,9 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t ResolveType(TCppType_t cppitem_name);
     RPY_EXPORTED
-    std::string ResolveEnum(const std::string& enum_type) { return enum_type; }
+    std::string ResolveEnum(TCppScope_t enum_scope);
+    RPY_EXPORTED
+    TCppType_t GetType(const std::string &name);
     RPY_EXPORTED
     TCppScope_t GetScope(const std::string& scope_name,
                          TCppScope_t parent_scope = 0);
@@ -230,7 +232,7 @@ namespace Cppyy {
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
     RPY_EXPORTED
     ptrdiff_t GetBaseOffset(
-        TCppType_t derived, TCppType_t base, TCppObject_t address, int direction, bool rerror = false) { return 0; }
+        TCppType_t derived, TCppType_t base, TCppObject_t address, int direction, bool rerror = false);
 
 // // method/function reflection information ------------------------------------
     RPY_EXPORTED
@@ -283,7 +285,7 @@ namespace Cppyy {
     bool        IsTemplatedMethod(TCppMethod_t method);
     RPY_EXPORTED
     TCppMethod_t GetMethodTemplate(
-        TCppScope_t scope, const std::string& name, const std::string& proto) { return 0; }
+        TCppScope_t scope, const std::string& name, const std::string& proto);
 
     RPY_EXPORTED
     TCppIndex_t  GetGlobalOperator(
@@ -345,11 +347,14 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppEnum_t  GetEnum(TCppScope_t scope, const std::string& enum_name) { return 0; }
     RPY_EXPORTED
-    TCppIndex_t GetNumEnumData(TCppEnum_t) { return 0; }
+    std::vector<TCppScope_t> GetEnumConstants(TCppScope_t scope);
     RPY_EXPORTED
     std::string GetEnumDataName(TCppEnum_t, TCppIndex_t idata) { return ""; }
     RPY_EXPORTED
-    long long   GetEnumDataValue(TCppEnum_t, TCppIndex_t idata) { return 0; }
+    TCppIndex_t GetEnumDataValue(TCppScope_t scope);
+
+    RPY_EXPORTED
+    TCppScope_t InstantiateTemplateClass(const std::string& templ_name);
 
 } // namespace Cppyy
 

@@ -364,6 +364,7 @@ std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 std::string Cppyy::ResolveName(const std::string& cppitem_name)
 {
     printf("Resolve name input = %s\n", cppitem_name.c_str());
+    return cppitem_name;
 
 // // Fully resolve the given name to the final type name.
 //
@@ -446,6 +447,11 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     return cling::InterOp::GetCanonicalType(type);
 }
 
+Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
+    return cling::InterOp::GetType(
+        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name);
+}
+
 // //----------------------------------------------------------------------------
 // static std::string extract_namespace(const std::string& name)
 // {
@@ -475,65 +481,12 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
 //     return "";
 // }
 //
-// static std::map<std::string, std::string> resolved_enum_types;
-// std::string Cppyy::ResolveEnum(const std::string& enum_type)
-// {
-// // The underlying type of a an enum may be any kind of integer.
-// // Resolve that type via a workaround (note: this function assumes
-// // that the enum_type name is a valid enum type name)
-//     auto res = resolved_enum_types.find(enum_type);
-//     if (res != resolved_enum_types.end())
-//         return res->second;
-//
-// // remove qualifiers and desugar the type before resolving
-//     std::string et_short = TClassEdit::ShortType(enum_type.c_str(), 1);
-//     if (et_short.find("(anonymous") == std::string::npos) {
-//         TEnum* ee = nullptr;
-//
-//         std::string scope_name = extract_namespace(et_short);
-//         if (scope_name.empty())
-//             ee = ((TListOfEnums*)gROOT->GetListOfEnums())->GetObject(et_short.c_str());
-//         else {
-//             TClass* cl = TClass::GetClass(scope_name.c_str());
-//             if (cl) ee = ((TListOfEnums*)cl->GetListOfEnums())->GetObject(
-//                 et_short.substr(scope_name.size()+2, std::string::npos).c_str());
-//         }
-//
-//         if (ee) {
-//             std::string underlying_type = TDataType::GetTypeName(ee->GetUnderlyingType());
-//             if (!underlying_type.empty()) {
-//                 underlying_type = TClassEdit::ResolveTypedef(underlying_type.c_str());
-//                 // TODO: "re-sugaring" like this is brittle, but the top
-//                 // should be re-translated into AST-based code anyway
-//                 std::string resugared;
-//                 if (et_short.size() != enum_type.size()) {
-//                     auto pos = enum_type.find(et_short);
-//                     if (pos != std::string::npos) {
-//                         resugared = enum_type.substr(0, pos) + underlying_type;
-//                         if (pos+et_short.size() < enum_type.size())
-//                             resugared += enum_type.substr(pos+et_short.size(), std::string::npos);
-//                     }
-//                 }
-//                 if (resugared.empty()) resugared = underlying_type;
-//                 resolved_enum_types[enum_type] = resugared;
-//                 return resugared;
-//             }
-//         }
-//     }
-//
-// // failed or anonymous ... signal upstream to special case this
-//     int ipos = (int)enum_type.size()-1;
-//     for (; 0 <= ipos; --ipos) {
-//         char c = enum_type[ipos];
-//         if (isspace(c)) continue;
-//         if (isalnum(c) || c == '_' || c == '>' || c == ')') break;
-//     }
-//     bool isConst = enum_type.find("const ", 6) != std::string::npos;
-//     std::string restype = isConst ? "const " : "";
-//     restype += "internal_enum_type_t"+enum_type.substr((std::string::size_type)ipos+1, std::string::npos);
-//     resolved_enum_types[enum_type] = restype;
-//     return restype;     // should default to some int variant
-// }
+
+std::string Cppyy::ResolveEnum(TCppScope_t handle)
+{
+    return cling::InterOp::GetTypeAsString(
+        cling::InterOp::GetEnumIntegerType(handle));
+}
 
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
                                    TCppScope_t parent_scope)
@@ -943,7 +896,9 @@ Cppyy::TCppFuncAddr_t Cppyy::GetFunctionAddress(TCppMethod_t method, bool check_
 bool Cppyy::IsNamespace(TCppScope_t scope)
 {
     // Test if this scope represents a namespace.
-    return cling::InterOp::IsNamespace(scope);
+    return cling::InterOp::IsNamespace(scope) || 
+        cling::InterOp::GetGlobalScope(
+            (cling::InterOp::TCppSema_t) &(gInterp->getSema())) == scope;
 }
 //
 bool Cppyy::IsAbstract(TCppScope_t scope)
@@ -1268,6 +1223,14 @@ bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
 // {
 //     gInterpreter->AddTypeReducer(reducable, reduced);
 // }
+
+
+// type offsets --------------------------------------------------------------
+ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
+    TCppObject_t address, int direction, bool rerror)
+{
+    intptr_t offset = cling::InterOp::GetBaseClassOffset(
+        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
 //
 //
 // // type offsets --------------------------------------------------------------
@@ -1304,13 +1267,13 @@ bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
 //
 //     offset = gInterpreter->ClassInfo_GetBaseOffset(
 //         cd->GetClassInfo(), cb->GetClassInfo(), (void*)address, direction > 0);
-//     if (offset == -1)   // Cling error, treat silently
-//         return rerror ? (ptrdiff_t)offset : 0;
-//
-//     return (ptrdiff_t)(direction < 0 ? -offset : offset);
-// }
-//
-//
+    if (offset == -1)   // Cling error, treat silently
+        return rerror ? (ptrdiff_t)offset : 0;
+
+    return (ptrdiff_t)(direction < 0 ? -offset : offset);
+}
+
+
 // // method/function reflection information ------------------------------------
 // Cppyy::TCppIndex_t Cppyy::GetNumMethods(TCppScope_t scope, bool accept_namespace)
 // {
@@ -1535,9 +1498,9 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 //     return n2.compare(0, n1.size(), n1) == 0;
 // }
 //
-// Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
-//     TCppScope_t scope, const std::string& name, const std::string& proto)
-// {
+Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
+    TCppScope_t scope, const std::string& name, const std::string& proto)
+{
 // // There is currently no clean way of extracting a templated method out of ROOT/meta
 // // for a variety of reasons, none of them fundamental. The game played below is to
 // // first get any pre-existing functions already managed by ROOT/meta, but if that fails,
@@ -1610,10 +1573,10 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 //             }
 //         }
 //     }
-//
-// // failure ...
-//     return (TCppMethod_t)nullptr;
-// }
+
+// failure ...
+    return (TCppMethod_t)nullptr;
+}
 //
 // static inline
 // std::string type_remap(const std::string& n1, const std::string& n2)
@@ -1914,26 +1877,19 @@ bool Cppyy::IsConstVar(TCppScope_t var)
 //     }
 //     return -1;
 // }
-//
-//
-// // enum properties -----------------------------------------------------------
-// Cppyy::TCppEnum_t Cppyy::GetEnum(TCppScope_t scope, const std::string& enum_name)
-// {
-//     if (scope == GLOBAL_HANDLE)
-//         return (TCppEnum_t)gROOT->GetListOfEnums(kTRUE)->FindObject(enum_name.c_str());
-//
-//     TClassRef& cr = type_from_handle(scope);
-//     if (cr.GetClass())
-//         return (TCppEnum_t)cr->GetListOfEnums(kTRUE)->FindObject(enum_name.c_str());
-//
-//     return (TCppEnum_t)0;
-// }
-//
-// Cppyy::TCppIndex_t Cppyy::GetNumEnumData(TCppEnum_t etype)
-// {
-//     return (TCppIndex_t)((TEnum*)etype)->GetConstants()->GetSize();
-// }
-//
+
+
+// enum properties -----------------------------------------------------------
+std::vector<Cppyy::TCppScope_t> Cppyy::GetEnumConstants(TCppScope_t scope)
+{
+    return cling::InterOp::GetEnumConstants(scope);
+}
+
+Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
+{
+    return cling::InterOp::GetEnumConstantValue(scope);
+}
+
 // std::string Cppyy::GetEnumDataName(TCppEnum_t etype, TCppIndex_t idata)
 // {
 //     return ((TEnumConstant*)((TEnum*)etype)->GetConstants()->At((int)idata))->GetName();
@@ -1944,8 +1900,13 @@ bool Cppyy::IsConstVar(TCppScope_t var)
 //      TEnumConstant* ecst = (TEnumConstant*)((TEnum*)etype)->GetConstants()->At((int)idata);
 //      return (long long)ecst->GetValue();
 // }
-//
-//
+
+Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name)
+{
+    cling::InterOp::InstantiateClassTemplate(
+        (cling::InterOp::TInterp_t) gInterp.get(), templ_name.c_str());
+}
+
 //- C-linkage wrappers -------------------------------------------------------
 
 extern "C" {
