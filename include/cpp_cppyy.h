@@ -356,6 +356,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t InstantiateTemplateClass(const std::string& templ_name);
 
+    RPY_EXPORTED
+    TCppScope_t DumpScope(TCppScope_t scope);
 } // namespace Cppyy
 
 

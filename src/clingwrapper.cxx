@@ -794,6 +794,7 @@ T CallT(Cppyy::TCppMethod_t method, Cppyy::TCppObject_t self, size_t nargs, void
 #define CPPYY_IMP_CALL(typecode, rtype)                                      \
 rtype Cppyy::Call##typecode(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)\
 {                                                                            \
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@\n");                                   \
     return CallT<rtype>(method, self, nargs, args);                          \
 }
 
@@ -1231,12 +1232,7 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
 {
     intptr_t offset = cling::InterOp::GetBaseClassOffset(
         (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
-//
-//
-// // type offsets --------------------------------------------------------------
-// ptrdiff_t Cppyy::GetBaseOffset(TCppType_t derived, TCppType_t base,
-//     TCppObject_t address, int direction, bool rerror)
-// {
+        printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
 //     if (derived == base || !(base && derived))
 //         return (ptrdiff_t)0;
@@ -1501,6 +1497,7 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
+    printf("========== GMT: %s; %s\n", name.c_str(), proto.c_str());
 // // There is currently no clean way of extracting a templated method out of ROOT/meta
 // // for a variety of reasons, none of them fundamental. The game played below is to
 // // first get any pre-existing functions already managed by ROOT/meta, but if that fails,
@@ -1905,6 +1902,11 @@ Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name
 {
     cling::InterOp::InstantiateClassTemplate(
         (cling::InterOp::TInterp_t) gInterp.get(), templ_name.c_str());
+}
+
+Cppyy::TCppScope_t Cppyy::DumpScope(TCppScope_t scope)
+{
+    return cling::InterOp::DumpScope(scope);
 }
 
 //- C-linkage wrappers -------------------------------------------------------
