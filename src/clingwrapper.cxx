@@ -262,12 +262,12 @@ public:
     // helper for multiple inheritance
         gInterp->declare("namespace __cppyy_internal { struct Sep; }");
 
-        std::string libInterOp = gInterp->getDynamicLibraryManager()->lookupLibrary("libcling");
-        void *interopDL = dlopen(libInterOp.c_str(), RTLD_LAZY);
-        if (!interopDL) {
-            std::cerr << "libInterop could not be opened!\n";
-            exit(1);
-        }
+        // std::string libInterOp = gInterp->getDynamicLibraryManager()->lookupLibrary("libcling");
+        // void *interopDL = dlopen(libInterOp.c_str(), RTLD_LAZY);
+        // if (!interopDL) {
+        //     std::cerr << "libInterop could not be opened!\n";
+        //     exit(1);
+        // }
 
     // start off with a reasonable size placeholder for wrappers
         // gWrapperHolder.reserve(1024);
@@ -871,28 +871,28 @@ Cppyy::TCppFuncAddr_t Cppyy::GetFunctionAddress(TCppMethod_t method, bool check_
 }
 
 
-// // handling of function argument buffer --------------------------------------
-// void* Cppyy::AllocateFunctionArgs(size_t nargs)
-// {
-//     return new Parameter[nargs];
-// }
-//
-// void Cppyy::DeallocateFunctionArgs(void* args)
-// {
-//     delete [] (Parameter*)args;
-// }
-//
-// size_t Cppyy::GetFunctionArgSizeof()
-// {
-//     return sizeof(Parameter);
-// }
-//
-// size_t Cppyy::GetFunctionArgTypeoffset()
-// {
-//     return offsetof(Parameter, fTypeCode);
-// }
-//
-//
+// handling of function argument buffer --------------------------------------
+void* Cppyy::AllocateFunctionArgs(size_t nargs)
+{
+    return new Parameter[nargs];
+}
+
+void Cppyy::DeallocateFunctionArgs(void* args)
+{
+    delete [] (Parameter*)args;
+}
+
+size_t Cppyy::GetFunctionArgSizeof()
+{
+    return sizeof(Parameter);
+}
+
+size_t Cppyy::GetFunctionArgTypeoffset()
+{
+    return offsetof(Parameter, fTypeCode);
+}
+
+
 // scope reflection information ----------------------------------------------
 bool Cppyy::IsNamespace(TCppScope_t scope)
 {
@@ -926,15 +926,12 @@ bool Cppyy::IsEnumType(TCppType_t type)
 //         return cr->ClassProperty() & kClassIsAggregate;
 //     return false;
 // }
-//
-// bool Cppyy::IsDefaultConstructable(TCppType_t type)
-// {
-// // Test if this type has a default constructor or is a "plain old data" type
-//     TClassRef& cr = type_from_handle(type);
-//     if (cr.GetClass())
-//         return cr->HasDefaultConstructor() || (cr->ClassProperty() & kClassIsAggregate);
-//     return false;
-// }
+
+bool Cppyy::IsDefaultConstructable(TCppScope_t scope)
+{
+// Test if this type has a default constructor or is a "plain old data" type
+    return cling::InterOp::IsDefaultConstructor(scope)
+}
 
 bool Cppyy::IsVariable(TCppScope_t scope)
 {
@@ -1122,19 +1119,12 @@ std::string Cppyy::GetScopedFinalName(TCppType_t klass)
     return cling::InterOp::GetCompleteName(klass);
 }
 
-// bool Cppyy::HasVirtualDestructor(TCppType_t klass)
-// {
-//     TClassRef& cr = type_from_handle(klass);
-//     if (!cr.GetClass())
-//         return false;
-//
-//     TFunction* f = cr->GetMethod(("~"+GetFinalName(klass)).c_str(), "");
-//     if (f && (f->Property() & kIsVirtual))
-//         return true;
-//
-//     return false;
-// }
-//
+bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
+{
+    TCppFunction_t func = cling::InterOp::GetDestructor(scope);
+    return cling::InterOp::IsVirtualMethod(func);
+}
+
 // bool Cppyy::HasComplexHierarchy(TCppType_t klass)
 // {
 //     int is_complex = 1;
@@ -1230,9 +1220,12 @@ bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
 ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
-    intptr_t offset = cling::InterOp::GetBaseClassOffset(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
+    intptr_t offset = -1;
+    if (cling::Interop::IsSubclass(derived, base)) {
+        offset = cling::InterOp::GetBaseClassOffset(
+            (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
+    }
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
 //     if (derived == base || !(base && derived))
 //         return (ptrdiff_t)0;
@@ -1606,9 +1599,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 //     std::string proto = lcname + "&" + (rc.empty() ? rc : (", " + rcname + "&"));
 //     if (scope == (cppyy_scope_t)GLOBAL_HANDLE) {
 //         TFunction* func = gROOT->GetGlobalFunctionWithPrototype(opname.c_str(), proto.c_str());
-//         if (func) return (TCppIndex_t)new_CallWrapper(func);
-//         proto = lcname + (rc.empty() ? rc : (", " + rcname));
-//         func = gROOT->GetGlobalFunctionWithPrototype(opname.c_str(), proto.c_str());
+//         if (func) retIsDatamemberPresent>GetGlobalFunctionWithPrototype(opname.c_str(), proto.c_str());
 //         if (func) return (TCppIndex_t)new_CallWrapper(func);
 //     } else {
 //         TClassRef& cr = type_from_handle(scope);
@@ -1676,6 +1667,11 @@ bool Cppyy::IsStaticMethod(TCppMethod_t method)
 std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
 {
     return cling::InterOp::GetDatamembers(scope);
+}
+
+bool CheckDatamember(TCppScope_t scope, const std::string& name) {
+    return (bool) cling::InterOp::LookupDatamember(
+        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
 }
 
 // std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)

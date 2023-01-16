@@ -167,13 +167,13 @@ namespace Cppyy {
 
 // // handling of function argument buffer --------------------------------------
     RPY_EXPORTED
-    void*  AllocateFunctionArgs(size_t nargs) { return 0; }
+    void*  AllocateFunctionArgs(size_t nargs)
     RPY_EXPORTED
-    void   DeallocateFunctionArgs(void* args) { return; }
+    void   DeallocateFunctionArgs(void* args)   
     RPY_EXPORTED
-    size_t GetFunctionArgSizeof() { return 0; }
+    size_t GetFunctionArgSizeof()
     RPY_EXPORTED
-    size_t GetFunctionArgTypeoffset() { return 0; }
+    size_t GetFunctionArgTypeoffset()
 
 // // scope reflection information ----------------------------------------------
     RPY_EXPORTED
@@ -191,7 +191,7 @@ namespace Cppyy {
 //     RPY_EXPORTED
 //     bool NewIsAggregate(TCppType_t type);
     RPY_EXPORTED
-    bool IsDefaultConstructable(TCppType_t type) { return false; }
+    bool IsDefaultConstructable(TCppScope_t scope)
     RPY_EXPORTED
     bool IsVariable(TCppScope_t scope);
 
@@ -306,12 +306,12 @@ namespace Cppyy {
     bool IsStaticMethod(TCppMethod_t method);
 
 // // data member reflection information ----------------------------------------
-    RPY_EXPORTED
-    TCppIndex_t GetNumDatamembers(TCppScope_t scope, bool accept_namespace = false) { return 0; }
+    // RPY_EXPORTED
+    // TCppIndex_t GetNumDatamembers(TCppScope_t scope, bool accept_namespace = false) { return 0; }
     RPY_EXPORTED
     std::vector<TCppScope_t> GetDatamembers(TCppScope_t scope);
-    RPY_EXPORTED
-    std::string GetDatamemberName(TCppScope_t scope, TCppIndex_t idata) { return ""; }
+    // RPY_EXPORTED
+    // std::string GetDatamemberName(TCppScope_t scope, TCppIndex_t idata) { return ""; }
     RPY_EXPORTED
     TCppType_t GetDatamemberType(TCppScope_t data);
     RPY_EXPORTED
@@ -321,11 +321,7 @@ namespace Cppyy {
     RPY_EXPORTED
     intptr_t    GetDatamemberOffset(TCppScope_t var);
     RPY_EXPORTED
-    TCppIndex_t GetDatamemberIndex(TCppScope_t scope, const std::string& name) { return 0; }
-    RPY_EXPORTED
-    TCppIndex_t GetDatamemberIndexEnumerated(TCppScope_t scope, TCppIndex_t idata) { return 0; }
-    RPY_EXPORTED
-    bool CheckDatamember(TCppScope_t scope, const std::string& name) { return false; }
+    bool CheckDatamember(TCppScope_t scope, const std::string& name);
 
 // // data member properties ----------------------------------------------------
     RPY_EXPORTED
@@ -344,12 +340,12 @@ namespace Cppyy {
 //     int  GetDimensionSize(TCppScope_t scope, TCppIndex_t idata, int dimension);
 //
 // // enum properties -----------------------------------------------------------
-    RPY_EXPORTED
-    TCppEnum_t  GetEnum(TCppScope_t scope, const std::string& enum_name) { return 0; }
+    // RPY_EXPORTED
+    // TCppEnum_t  GetEnum(TCppScope_t scope, const std::string& enum_name) { return 0; }
     RPY_EXPORTED
     std::vector<TCppScope_t> GetEnumConstants(TCppScope_t scope);
-    RPY_EXPORTED
-    std::string GetEnumDataName(TCppEnum_t, TCppIndex_t idata) { return ""; }
+    // RPY_EXPORTED
+    // std::string GetEnumDataName(TCppEnum_t, TCppIndex_t idata) { return ""; }
     RPY_EXPORTED
     TCppIndex_t GetEnumDataValue(TCppScope_t scope);
 
