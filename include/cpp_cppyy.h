@@ -167,13 +167,13 @@ namespace Cppyy {
 
 // // handling of function argument buffer --------------------------------------
     RPY_EXPORTED
-    void*  AllocateFunctionArgs(size_t nargs)
+    void*  AllocateFunctionArgs(size_t nargs);
     RPY_EXPORTED
-    void   DeallocateFunctionArgs(void* args)   
+    void   DeallocateFunctionArgs(void* args);
     RPY_EXPORTED
-    size_t GetFunctionArgSizeof()
+    size_t GetFunctionArgSizeof();
     RPY_EXPORTED
-    size_t GetFunctionArgTypeoffset()
+    size_t GetFunctionArgTypeoffset();
 
 // // scope reflection information ----------------------------------------------
     RPY_EXPORTED
@@ -191,7 +191,7 @@ namespace Cppyy {
 //     RPY_EXPORTED
 //     bool NewIsAggregate(TCppType_t type);
     RPY_EXPORTED
-    bool IsDefaultConstructable(TCppScope_t scope)
+    bool IsDefaultConstructable(TCppScope_t scope);
     RPY_EXPORTED
     bool IsVariable(TCppScope_t scope);
 
@@ -208,7 +208,7 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetScopedFinalName(TCppType_t type);
     RPY_EXPORTED
-    bool        HasVirtualDestructor(TCppType_t type) { return false; }
+    bool        HasVirtualDestructor(TCppType_t type);
     RPY_EXPORTED
     bool        HasComplexHierarchy(TCppType_t type) { return false; }
     RPY_EXPORTED
