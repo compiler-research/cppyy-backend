@@ -930,7 +930,7 @@ bool Cppyy::IsEnumType(TCppType_t type)
 bool Cppyy::IsDefaultConstructable(TCppScope_t scope)
 {
 // Test if this type has a default constructor or is a "plain old data" type
-    return cling::InterOp::IsDefaultConstructor(scope)
+    return cling::InterOp::HasDefaultConstructor(scope);
 }
 
 bool Cppyy::IsVariable(TCppScope_t scope)
