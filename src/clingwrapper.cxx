@@ -1121,7 +1121,7 @@ std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 
 bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
 {
-    TCppFunction_t func = cling::InterOp::GetDestructor(scope);
+    TCppMethod_t func = cling::InterOp::GetDestructor(scope);
     return cling::InterOp::IsVirtualMethod(func);
 }
 
