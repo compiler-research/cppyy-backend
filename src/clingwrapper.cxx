@@ -1221,7 +1221,7 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
     intptr_t offset = -1;
-    if (cling::Interop::IsSubclass(derived, base)) {
+    if (cling::InterOp::IsSubclass(derived, base)) {
         offset = cling::InterOp::GetBaseClassOffset(
             (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
