@@ -1669,7 +1669,7 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
     return cling::InterOp::GetDatamembers(scope);
 }
 
-bool CheckDatamember(TCppScope_t scope, const std::string& name) {
+bool Cppyy::CheckDatamember(Cppyy::TCppScope_t scope, const std::string& name) {
     return (bool) cling::InterOp::LookupDatamember(
         (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
 }
