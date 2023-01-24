@@ -452,6 +452,15 @@ Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
         (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name);
 }
 
+
+Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
+    return cling::InterOp::GetComplexType(
+            (cling::InterOp::TCppSema_t) &(gInterp->getSema()),
+            cling::InterOp::GetType(
+                (cling::InterOp::TCppSema_t) &(gInterp->getSema()),
+                name));
+}
+
 // //----------------------------------------------------------------------------
 // static std::string extract_namespace(const std::string& name)
 // {

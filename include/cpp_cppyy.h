@@ -85,6 +85,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t GetType(const std::string &name);
     RPY_EXPORTED
+    TCppType_t GetComplexType(const std::string &element_type);
+    RPY_EXPORTED
     TCppScope_t GetScope(const std::string& scope_name,
                          TCppScope_t parent_scope = 0);
     RPY_EXPORTED
