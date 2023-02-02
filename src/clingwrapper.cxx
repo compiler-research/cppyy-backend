@@ -1827,9 +1827,9 @@ Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name
     return InterOp::InstantiateClassTemplate(gInterp, templ_name.c_str());
 }
 
-Cppyy::TCppScope_t Cppyy::DumpScope(TCppScope_t scope)
+void Cppyy::DumpScope(TCppScope_t scope)
 {
-    return InterOp::DumpScope(scope);
+    // return InterOp::DumpScope(scope);
 }
 
 //- C-linkage wrappers -------------------------------------------------------
