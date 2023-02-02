@@ -169,12 +169,14 @@ static struct Signalmap_t {
 // };
 
 static InterOp::TInterp_t gInterp;
+static InterOp::TCppSema_t gSema;
 
 class ApplicationStarter {
 public:
     ApplicationStarter() {
         // Create the interpreter and initilize the pointer
         gInterp = InterOp::CreateInterpreter();
+        gSema = InterOp::GetSema(gInterp);
 
         // fill out the builtins
         std::set<std::string> bi{g_builtins};
@@ -394,8 +396,12 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
 }
 
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
-    return InterOp::GetType(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name);
+    return InterOp::GetType(gSema, name);
+}
+
+
+Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
+    return InterOp::GetComplexType(gSema, InterOp::GetType(gSema, name));
 }
 
 
@@ -442,15 +448,13 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
         printf("Wrong call to GetScope\n");
     }
 
-    return InterOp::GetScope(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
+    return InterOp::GetScope(gSema, name, parent_scope);
 }
 
 
 Cppyy::TCppScope_t Cppyy::GetFullScope(const std::string& name)
 {
-    return InterOp::GetScopeFromCompleteName(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name);
+    return InterOp::GetScopeFromCompleteName(gSema, name);
 }
 
 Cppyy::TCppScope_t Cppyy::GetTypeScope(TCppScope_t var)
@@ -462,8 +466,7 @@ Cppyy::TCppScope_t Cppyy::GetTypeScope(TCppScope_t var)
 Cppyy::TCppScope_t Cppyy::GetNamed(const std::string& name,
                                    TCppScope_t parent_scope)
 {
-    return InterOp::GetNamed(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
+    return InterOp::GetNamed(gSema, name, parent_scope);
 }
 
 Cppyy::TCppScope_t Cppyy::GetParentScope(TCppScope_t scope)
@@ -478,8 +481,7 @@ Cppyy::TCppScope_t Cppyy::GetScopeFromType(TCppType_t type)
 
 Cppyy::TCppScope_t Cppyy::GetGlobalScope()
 {
-    return InterOp::GetGlobalScope(
-        (InterOp::TCppSema_t) &(gInterp->getSema()));
+    return InterOp::GetGlobalScope(gSema);
 }
 
 bool Cppyy::IsTemplate(TCppScope_t handle)
@@ -803,8 +805,7 @@ Cppyy::TCppObject_t Cppyy::CallConstructor(
 Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
     TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)
 {
-    void* obj = ::operator new(InterOp::GetSizeOfType(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), result_type));
+    void* obj = ::operator new(InterOp::GetSizeOfType(gSema, result_type));
     if (WrapperCall(method, nargs, args, self, obj))
         return (TCppObject_t)obj;
     ::operator delete(obj);
@@ -844,8 +845,7 @@ bool Cppyy::IsNamespace(TCppScope_t scope)
 {
     // Test if this scope represents a namespace.
     return InterOp::IsNamespace(scope) || 
-        InterOp::GetGlobalScope(
-            (InterOp::TCppSema_t) &(gInterp->getSema())) == scope;
+        InterOp::GetGlobalScope(gSema) == scope;
 }
 //
 bool Cppyy::IsAbstract(TCppScope_t scope)
@@ -1167,9 +1167,8 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
     intptr_t offset = -1;
-    if (Interop::IsSubclass(derived, base)) {
-        offset = InterOp::GetBaseClassOffset(
-            (InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
+    if (InterOp::IsSubclass(derived, base)) {
+        offset = InterOp::GetBaseClassOffset(gSema, derived, base);
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
     }
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
@@ -1248,8 +1247,7 @@ std::vector<Cppyy::TCppMethod_t> Cppyy::GetClassMethods(TCppScope_t scope)
 std::vector<Cppyy::TCppScope_t> Cppyy::GetMethodsFromName(
     TCppScope_t scope, const std::string& name)
 {
-    return InterOp::GetFunctionsUsingName(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), scope, name);
+    return InterOp::GetFunctionsUsingName(gSema, scope, name);
 }
 
 // Cppyy::TCppMethod_t Cppyy::GetMethod(TCppScope_t scope, TCppIndex_t idx)
@@ -1407,8 +1405,7 @@ std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args
 //
 bool Cppyy::ExistsMethodTemplate(TCppScope_t scope, const std::string& name)
 {
-    return InterOp::ExistsFunctionTemplate(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
+    return InterOp::ExistsFunctionTemplate(gSema, name, scope);
 }
 
 bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
@@ -1616,8 +1613,7 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
 }
 
 bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
-    return (bool) InterOp::LookupDatamember(
-        (InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
+    return (bool) InterOp::LookupDatamember(gSema, name, scope);
 }
 
 // std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)
