@@ -61,13 +61,13 @@ static inline size_t CALL_NARGS(size_t nargs) {
 //
 
 namespace Cppyy {
-    typedef cling::InterOp::TCppScope_t    TCppScope_t;
-    typedef cling::InterOp::TCppType_t     TCppType_t;
-    typedef cling::InterOp::TCppScope_t    TCppEnum_t;
-    typedef cling::InterOp::TCppScope_t    TCppObject_t;
-    typedef cling::InterOp::TCppFunction_t TCppMethod_t;
-    typedef cling::InterOp::TCppIndex_t    TCppIndex_t;
-    typedef intptr_t                       TCppFuncAddr_t;
+    typedef InterOp::TCppScope_t    TCppScope_t;
+    typedef InterOp::TCppType_t     TCppType_t;
+    typedef InterOp::TCppScope_t    TCppEnum_t;
+    typedef InterOp::TCppScope_t    TCppObject_t;
+    typedef InterOp::TCppFunction_t TCppMethod_t;
+    typedef InterOp::TCppIndex_t    TCppIndex_t;
+    typedef intptr_t                TCppFuncAddr_t;
 
 // // direct interpreter access -------------------------------------------------
     RPY_EXPORTED

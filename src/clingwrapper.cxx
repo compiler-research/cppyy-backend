@@ -354,8 +354,8 @@ bool Cppyy::Compile(const std::string& code, bool silent)
 
 std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 {
-    if (klass && obj && !cling::InterOp::IsNamespace((TCppScope_t)klass))
-        return gInterp->toString(cling::InterOp::GetCompleteName(klass).c_str(),
+    if (klass && obj && !InterOp::IsNamespace((TCppScope_t)klass))
+        return gInterp->toString(InterOp::GetCompleteName(klass).c_str(),
                 (void*)obj);
     return "";
 }
@@ -444,22 +444,14 @@ std::string Cppyy::ResolveName(const std::string& cppitem_name)
 
 
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
-    return cling::InterOp::GetCanonicalType(type);
+    return InterOp::GetCanonicalType(type);
 }
 
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
-    return cling::InterOp::GetType(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name);
+    return InterOp::GetType(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name);
 }
 
-
-Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
-    return cling::InterOp::GetComplexType(
-            (cling::InterOp::TCppSema_t) &(gInterp->getSema()),
-            cling::InterOp::GetType(
-                (cling::InterOp::TCppSema_t) &(gInterp->getSema()),
-                name));
-}
 
 // //----------------------------------------------------------------------------
 // static std::string extract_namespace(const std::string& name)
@@ -493,8 +485,8 @@ Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
 
 std::string Cppyy::ResolveEnum(TCppScope_t handle)
 {
-    return cling::InterOp::GetTypeAsString(
-        cling::InterOp::GetEnumIntegerType(handle));
+    return InterOp::GetTypeAsString(
+        InterOp::GetEnumIntegerType(handle));
 }
 
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
@@ -504,49 +496,49 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
         printf("Wrong call to GetScope\n");
     }
 
-    return cling::InterOp::GetScope(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
+    return InterOp::GetScope(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
 }
 
 
 Cppyy::TCppScope_t Cppyy::GetFullScope(const std::string& name)
 {
-    return cling::InterOp::GetScopeFromCompleteName(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name);
+    return InterOp::GetScopeFromCompleteName(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name);
 }
 
 Cppyy::TCppScope_t Cppyy::GetTypeScope(TCppScope_t var)
 {
-    return cling::InterOp::GetScopeFromType(
-        cling::InterOp::GetVariableType(var));
+    return InterOp::GetScopeFromType(
+        InterOp::GetVariableType(var));
 }
 
 Cppyy::TCppScope_t Cppyy::GetNamed(const std::string& name,
                                    TCppScope_t parent_scope)
 {
-    return cling::InterOp::GetNamed(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
+    return InterOp::GetNamed(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name, parent_scope);
 }
 
 Cppyy::TCppScope_t Cppyy::GetParentScope(TCppScope_t scope)
 {
-    return cling::InterOp::GetParentScope(scope);
+    return InterOp::GetParentScope(scope);
 }
 
 Cppyy::TCppScope_t Cppyy::GetScopeFromType(TCppType_t type)
 {
-    return cling::InterOp::GetScopeFromType(type);
+    return InterOp::GetScopeFromType(type);
 }
 
 Cppyy::TCppScope_t Cppyy::GetGlobalScope()
 {
-    return cling::InterOp::GetGlobalScope(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()));
+    return InterOp::GetGlobalScope(
+        (InterOp::TCppSema_t) &(gInterp->getSema()));
 }
 
 bool Cppyy::IsTemplate(TCppScope_t handle)
 {
-    return cling::InterOp::IsTemplate(handle);
+    return InterOp::IsTemplate(handle);
 }
 
 // namespace {
@@ -616,7 +608,7 @@ bool Cppyy::IsTemplate(TCppScope_t handle)
 
 size_t Cppyy::SizeOf(TCppType_t klass)
 {
-    return cling::InterOp::SizeOf(klass);
+    return InterOp::SizeOf(klass);
 }
 
 // size_t Cppyy::SizeOf(const std::string& type_name)
@@ -643,13 +635,13 @@ size_t Cppyy::SizeOf(TCppType_t klass)
 
 bool Cppyy::IsBuiltin(TCppType_t type)
 {
-    return  cling::InterOp::IsBuiltin(type);
+    return  InterOp::IsBuiltin(type);
     
 }
 
 bool Cppyy::IsComplete(TCppScope_t scope)
 {
-    return cling::InterOp::IsComplete(scope);
+    return InterOp::IsComplete(scope);
 }
 
 // // memory management ---------------------------------------------------------
@@ -734,13 +726,13 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
     nargs = CALL_NARGS(nargs);
 
     // CallWrapper* wrap = (CallWrapper*)method;
-    const cling::InterOp::CallFuncWrapper_t& faceptr = 
-        cling::InterOp::GetFunctionCallWrapper((cling::InterOp::TInterp_t) gInterp.get(), method);
+    const InterOp::CallFuncWrapper_t& faceptr = 
+        InterOp::GetFunctionCallWrapper((InterOp::TInterp_t) gInterp.get(), method);
     // if (!is_ready(wrap, is_direct))
     //     return false;        // happens with compilation error
 
     nargs = CALL_NARGS(nargs);
-    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kGeneric) {
+    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kGeneric) {
     bool runRelease = false;
     const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
     if (nargs <= SMALL_ARGS_N) {
@@ -762,7 +754,7 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
     return true;
     // }
 
-    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kCtor) {
+    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kCtor) {
     //     bool runRelease = false;
     //     if (nargs <= SMALL_ARGS_N) {
     //         void* smallbuf[SMALL_ARGS_N];
@@ -781,7 +773,7 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
     //     return true;
     // }
 
-    // if (faceptr.fKind == cling::InterOp::CallFuncWrapper_t::kDtor) {
+    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kDtor) {
     //     std::cerr << " DESTRUCTOR NOT IMPLEMENTED YET! " << std::endl;
     //     return false;
     // }
@@ -865,8 +857,8 @@ Cppyy::TCppObject_t Cppyy::CallConstructor(
 Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
     TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)
 {
-    void* obj = ::operator new(cling::InterOp::GetSizeOfType(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), result_type));
+    void* obj = ::operator new(InterOp::GetSizeOfType(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), result_type));
     if (WrapperCall(method, nargs, args, self, obj))
         return (TCppObject_t)obj;
     ::operator delete(obj);
@@ -875,8 +867,8 @@ Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
 
 Cppyy::TCppFuncAddr_t Cppyy::GetFunctionAddress(TCppMethod_t method, bool check_enabled)
 {
-    return (TCppFuncAddr_t) cling::InterOp::GetFunctionAddress(
-        (cling::InterOp::TInterp_t) gInterp.get(), method);
+    return (TCppFuncAddr_t) InterOp::GetFunctionAddress(
+        (InterOp::TInterp_t) gInterp.get(), method);
 }
 
 
@@ -906,25 +898,25 @@ size_t Cppyy::GetFunctionArgTypeoffset()
 bool Cppyy::IsNamespace(TCppScope_t scope)
 {
     // Test if this scope represents a namespace.
-    return cling::InterOp::IsNamespace(scope) || 
-        cling::InterOp::GetGlobalScope(
-            (cling::InterOp::TCppSema_t) &(gInterp->getSema())) == scope;
+    return InterOp::IsNamespace(scope) || 
+        InterOp::GetGlobalScope(
+            (InterOp::TCppSema_t) &(gInterp->getSema())) == scope;
 }
 //
 bool Cppyy::IsAbstract(TCppScope_t scope)
 {
     // Test if this type may not be instantiated.
-    return cling::InterOp::IsAbstract(scope);
+    return InterOp::IsAbstract(scope);
 }
 
 bool Cppyy::IsEnum(TCppScope_t scope)
 {
-    return cling::InterOp::IsEnum(scope);
+    return InterOp::IsEnum(scope);
 }
 
 bool Cppyy::IsEnumType(TCppType_t type)
 {
-    return cling::InterOp::IsEnumType(type);
+    return InterOp::IsEnumType(type);
 }
 
 // bool Cppyy::IsAggregate(TCppType_t type)
@@ -939,12 +931,12 @@ bool Cppyy::IsEnumType(TCppType_t type)
 bool Cppyy::IsDefaultConstructable(TCppScope_t scope)
 {
 // Test if this type has a default constructor or is a "plain old data" type
-    return cling::InterOp::HasDefaultConstructor(scope);
+    return InterOp::HasDefaultConstructor(scope);
 }
 
 bool Cppyy::IsVariable(TCppScope_t scope)
 {
-    return cling::InterOp::IsVariable(scope);
+    return InterOp::IsVariable(scope);
 }
 
 // // helpers for stripping scope names
@@ -1114,24 +1106,24 @@ bool Cppyy::IsVariable(TCppScope_t scope)
 // // class reflection information ----------------------------------------------
 std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)
 {
-    return cling::InterOp::GetUsingNamespaces(scope);
+    return InterOp::GetUsingNamespaces(scope);
 }
 
 // // class reflection information ----------------------------------------------
 std::string Cppyy::GetFinalName(TCppType_t klass)
 {
-    return cling::InterOp::GetName(klass);
+    return InterOp::GetName(klass);
 }
 
 std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 {
-    return cling::InterOp::GetCompleteName(klass);
+    return InterOp::GetCompleteName(klass);
 }
 
 bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
 {
-    TCppMethod_t func = cling::InterOp::GetDestructor(scope);
-    return cling::InterOp::IsVirtualMethod(func);
+    TCppMethod_t func = InterOp::GetDestructor(scope);
+    return InterOp::IsVirtualMethod(func);
 }
 
 // bool Cppyy::HasComplexHierarchy(TCppType_t klass)
@@ -1161,22 +1153,22 @@ bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
 Cppyy::TCppIndex_t Cppyy::GetNumBases(TCppScope_t klass)
 {
 // Get the total number of base classes that this class has.
-    return cling::InterOp::GetNumBases(klass);
+    return InterOp::GetNumBases(klass);
 }
 
 std::string Cppyy::GetBaseName(TCppType_t klass, TCppIndex_t ibase)
 {
-    return cling::InterOp::GetName(cling::InterOp::GetBaseClass(klass, ibase));
+    return InterOp::GetName(InterOp::GetBaseClass(klass, ibase));
 }
 
 Cppyy::TCppScope_t Cppyy::GetBaseScope(TCppScope_t klass, TCppIndex_t ibase)
 {
-    return cling::InterOp::GetBaseClass(klass, ibase);
+    return InterOp::GetBaseClass(klass, ibase);
 }
 
 bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
 {
-    return cling::InterOp::IsSubclass(derived, base);
+    return InterOp::IsSubclass(derived, base);
 }
 
 // bool Cppyy::IsSmartPtr(TCppType_t klass)
@@ -1230,9 +1222,9 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
     intptr_t offset = -1;
-    if (cling::InterOp::IsSubclass(derived, base)) {
-        offset = cling::InterOp::GetBaseClassOffset(
-            (cling::InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
+    if (Interop::IsSubclass(derived, base)) {
+        offset = InterOp::GetBaseClassOffset(
+            (InterOp::TCppSema_t) &(gInterp->getSema()), derived, base);
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
     }
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
@@ -1305,14 +1297,14 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
 
 std::vector<Cppyy::TCppMethod_t> Cppyy::GetClassMethods(TCppScope_t scope)
 {
-    return cling::InterOp::GetClassMethods(scope);
+    return InterOp::GetClassMethods(scope);
 }
 
 std::vector<Cppyy::TCppScope_t> Cppyy::GetMethodsFromName(
     TCppScope_t scope, const std::string& name)
 {
-    return cling::InterOp::GetFunctionsUsingName(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), scope, name);
+    return InterOp::GetFunctionsUsingName(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), scope, name);
 }
 
 // Cppyy::TCppMethod_t Cppyy::GetMethod(TCppScope_t scope, TCppIndex_t idx)
@@ -1330,12 +1322,12 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetMethodsFromName(
 //
 std::string Cppyy::GetMethodName(TCppMethod_t method)
 {
-    return cling::InterOp::GetName(method);
+    return InterOp::GetName(method);
 }
 
 std::string Cppyy::GetMethodFullName(TCppMethod_t method)
 {
-    return cling::InterOp::GetCompleteName(method);
+    return InterOp::GetCompleteName(method);
 }
 
 // std::string Cppyy::GetMethodMangledName(TCppMethod_t method)
@@ -1347,23 +1339,23 @@ std::string Cppyy::GetMethodFullName(TCppMethod_t method)
 
 Cppyy::TCppType_t Cppyy::GetMethodReturnType(TCppMethod_t method)
 {
-    return cling::InterOp::GetFunctionReturnType(method);
+    return InterOp::GetFunctionReturnType(method);
 }
 
 std::string Cppyy::GetMethodReturnTypeAsString(TCppMethod_t method)
 {
-    return cling::InterOp::GetTypeAsString(
-        cling::InterOp::GetFunctionReturnType(method));
+    return InterOp::GetTypeAsString(
+        InterOp::GetFunctionReturnType(method));
 }
 
 Cppyy::TCppIndex_t Cppyy::GetMethodNumArgs(TCppMethod_t method)
 {
-    return cling::InterOp::GetFunctionNumArgs(method);
+    return InterOp::GetFunctionNumArgs(method);
 }
 
 Cppyy::TCppIndex_t Cppyy::GetMethodReqArgs(TCppMethod_t method)
 {
-    return cling::InterOp::GetFunctionRequiredArgs(method);
+    return InterOp::GetFunctionRequiredArgs(method);
 }
 
 // std::string Cppyy::GetMethodArgName(TCppMethod_t method, TCppIndex_t iarg)
@@ -1378,13 +1370,13 @@ Cppyy::TCppIndex_t Cppyy::GetMethodReqArgs(TCppMethod_t method)
 
 Cppyy::TCppType_t Cppyy::GetMethodArgType(TCppMethod_t method, TCppIndex_t iarg)
 {
-    return cling::InterOp::GetFunctionArgType(method, iarg);
+    return InterOp::GetFunctionArgType(method, iarg);
 }
 
 std::string Cppyy::GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
 {
-    return cling::InterOp::GetTypeAsString(
-        cling::InterOp::GetFunctionArgType(method, iarg));
+    return InterOp::GetTypeAsString(
+        InterOp::GetFunctionArgType(method, iarg));
 }
 
 // std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
@@ -1402,12 +1394,12 @@ std::string Cppyy::GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iar
 
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
 {
-    return cling::InterOp::GetFunctionSignature(method, show_formal_args, max_args);
+    return InterOp::GetFunctionSignature(method, show_formal_args, max_args);
 }
 
 std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args)
 {
-    return cling::InterOp::GetFunctionPrototype(method, show_formal_args);
+    return InterOp::GetFunctionPrototype(method, show_formal_args);
 }
 
 // bool Cppyy::IsConstMethod(TCppMethod_t method)
@@ -1470,13 +1462,13 @@ std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args
 //
 bool Cppyy::ExistsMethodTemplate(TCppScope_t scope, const std::string& name)
 {
-    return cling::InterOp::ExistsFunctionTemplate(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
+    return InterOp::ExistsFunctionTemplate(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
 }
 
 bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 {
-    return cling::InterOp::IsTemplatedFunction(method);
+    return InterOp::IsTemplatedFunction(method);
 }
 
 // // helpers for Cppyy::GetMethodTemplate()
@@ -1628,32 +1620,32 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 // // method properties ---------------------------------------------------------
 bool Cppyy::IsPublicMethod(TCppMethod_t method)
 {
-    return cling::InterOp::IsPublicMethod(method);
+    return InterOp::IsPublicMethod(method);
 }
 
 bool Cppyy::IsProtectedMethod(TCppMethod_t method)
 {
-    return cling::InterOp::IsProtectedMethod(method);
+    return InterOp::IsProtectedMethod(method);
 }
 
 bool Cppyy::IsPrivateMethod(TCppMethod_t method)
 {
-    return cling::InterOp::IsPrivateMethod(method);
+    return InterOp::IsPrivateMethod(method);
 }
 
 bool Cppyy::IsConstructor(TCppMethod_t method)
 {
-    return cling::InterOp::IsConstructor(method);
+    return InterOp::IsConstructor(method);
 }
 
 bool Cppyy::IsDestructor(TCppMethod_t method)
 {
-    return cling::InterOp::IsDestructor(method);
+    return InterOp::IsDestructor(method);
 }
 
 bool Cppyy::IsStaticMethod(TCppMethod_t method)
 {
-    return cling::InterOp::IsStaticMethod(method);
+    return InterOp::IsStaticMethod(method);
 }
 
 //
@@ -1675,12 +1667,12 @@ bool Cppyy::IsStaticMethod(TCppMethod_t method)
 
 std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
 {
-    return cling::InterOp::GetDatamembers(scope);
+    return InterOp::GetDatamembers(scope);
 }
 
-bool Cppyy::CheckDatamember(Cppyy::TCppScope_t scope, const std::string& name) {
-    return (bool) cling::InterOp::LookupDatamember(
-        (cling::InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
+bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
+    return (bool) InterOp::LookupDatamember(
+        (InterOp::TCppSema_t) &(gInterp->getSema()), name, scope);
 }
 
 // std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)
@@ -1709,24 +1701,24 @@ bool Cppyy::CheckDatamember(Cppyy::TCppScope_t scope, const std::string& name) {
 
 Cppyy::TCppType_t Cppyy::GetDatamemberType(TCppScope_t var)
 {
-    return cling::InterOp::GetVariableType(var);
+    return InterOp::GetVariableType(var);
 }
 
 std::string Cppyy::GetDatamemberTypeAsString(TCppScope_t scope)
 {
-    return cling::InterOp::GetTypeAsString(
-        cling::InterOp::GetVariableType(scope));
+    return InterOp::GetTypeAsString(
+        InterOp::GetVariableType(scope));
 }
 
 std::string Cppyy::GetTypeAsString(TCppType_t type)
 {
-    return cling::InterOp::GetTypeAsString(type);
+    return InterOp::GetTypeAsString(type);
 }
 
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)
 {
-    return cling::InterOp::GetVariableOffset(
-        (cling::InterOp::TInterp_t) gInterp.get(), var);
+    return InterOp::GetVariableOffset(
+        (InterOp::TInterp_t) gInterp.get(), var);
 }
 
 // static inline
@@ -1803,27 +1795,27 @@ intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)
 // data member properties ----------------------------------------------------
 bool Cppyy::IsPublicData(TCppScope_t datamem)
 {
-    return cling::InterOp::IsPublicVariable(datamem);
+    return InterOp::IsPublicVariable(datamem);
 }
 
 bool Cppyy::IsProtectedData(TCppScope_t datamem)
 {
-    return cling::InterOp::IsProtectedVariable(datamem);
+    return InterOp::IsProtectedVariable(datamem);
 }
 
 bool Cppyy::IsPrivateData(TCppScope_t datamem)
 {
-    return cling::InterOp::IsPrivateVariable(datamem);
+    return InterOp::IsPrivateVariable(datamem);
 }
 
 bool Cppyy::IsStaticDatamember(TCppScope_t var)
 {
-    return cling::InterOp::IsStaticVariable(var);
+    return InterOp::IsStaticVariable(var);
 }
 
 bool Cppyy::IsConstVar(TCppScope_t var)
 {
-    return cling::InterOp::IsConstVariable(var);
+    return InterOp::IsConstVariable(var);
 }
 
 // bool Cppyy::IsEnumData(TCppScope_t scope, TCppIndex_t idata)
@@ -1884,12 +1876,12 @@ bool Cppyy::IsConstVar(TCppScope_t var)
 // enum properties -----------------------------------------------------------
 std::vector<Cppyy::TCppScope_t> Cppyy::GetEnumConstants(TCppScope_t scope)
 {
-    return cling::InterOp::GetEnumConstants(scope);
+    return InterOp::GetEnumConstants(scope);
 }
 
 Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 {
-    return cling::InterOp::GetEnumConstantValue(scope);
+    return InterOp::GetEnumConstantValue(scope);
 }
 
 // std::string Cppyy::GetEnumDataName(TCppEnum_t etype, TCppIndex_t idata)
@@ -1905,13 +1897,13 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 
 Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name)
 {
-    cling::InterOp::InstantiateClassTemplate(
-        (cling::InterOp::TInterp_t) gInterp.get(), templ_name.c_str());
+    InterOp::InstantiateClassTemplate(
+        (InterOp::TInterp_t) gInterp.get(), templ_name.c_str());
 }
 
 Cppyy::TCppScope_t Cppyy::DumpScope(TCppScope_t scope)
 {
-    return cling::InterOp::DumpScope(scope);
+    return InterOp::DumpScope(scope);
 }
 
 //- C-linkage wrappers -------------------------------------------------------
