@@ -194,13 +194,13 @@ public:
         if (optLevel != 0) {
             std::ostringstream s;
             s << "#pragma cling optimize " << optLevel;
-            gInterp->process(s.str().c_str());
+            InterOp::Process(gInterp, s.str().c_str());
         }
 
         // XXX: Fix all these hard includes 
-        gInterp->AddIncludePath("/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/include");
-        gInterp->AddIncludePath("/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/lib/clang/9.0.1/include");
-        gInterp->loadLibrary("/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", /* lookup= */ false);
+        InterOp::AddIncludePath(gInterp, "/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/include");
+        InterOp::AddIncludePath(gInterp, "/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/lib/clang/9.0.1/include");
+        InterOp::LoadLibrary(gInterp, "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", /* lookup= */ false);
 
         // load frequently used headers
         const char* code =
@@ -211,22 +211,22 @@ public:
                "#include <utility>\n"
                "#include <memory>\n"
                "#include \"cling/Interpreter/Interpreter.h\"\n"
-               "#include \"cling/Interpreter/InterOp.h\"";
-        gInterp->process(code);
+               "#include \"clang/Interpreter/InterOp.h\"";
+        InterOp::Process(gInterp, code);
 
     // create helpers for comparing thingies
-        gInterp->declare(
+        InterOp::Declare(gInterp, 
             "namespace __cppyy_internal { template<class C1, class C2>"
             " bool is_equal(const C1& c1, const C2& c2) { return (bool)(c1 == c2); } }");
-        gInterp->declare(
+        InterOp::Declare(gInterp, 
             "namespace __cppyy_internal { template<class C1, class C2>"
             " bool is_not_equal(const C1& c1, const C2& c2) { return (bool)(c1 != c2); } }");
-        gInterp->process(
+        InterOp::Process(gInterp, 
             "namespace cling { namespace runtime {"
             " DynamicLibraryManager *gDLM = gCling->getDynamicLibraryManager(); } }");
 
     // helper for multiple inheritance
-        gInterp->declare("namespace __cppyy_internal { struct Sep; }");
+        InterOp::Declare(gInterp, "namespace __cppyy_internal { struct Sep; }");
 
         // std::string libInterOp = gInterp->getDynamicLibraryManager()->lookupLibrary("libcling");
         // void *interopDL = dlopen(libInterOp.c_str(), RTLD_LAZY);
@@ -249,21 +249,6 @@ public:
     }
 } _applicationStarter;
 
-
-class clangSilent {
-public:
-  clangSilent(clang::DiagnosticsEngine& diag) : fDiagEngine(diag) {
-    fOldDiagValue = fDiagEngine.getSuppressAllDiagnostics();
-    fDiagEngine.setSuppressAllDiagnostics(true);
-  }
-
-  ~clangSilent() {
-    fDiagEngine.setSuppressAllDiagnostics(fOldDiagValue);
-  }
-protected:
-  clang::DiagnosticsEngine& fDiagEngine;
-  bool fOldDiagValue;
-};
 } // unnamed namespace
 
 
@@ -310,18 +295,13 @@ char* cppstring_to_cstring(const std::string& cppstr)
 // // direct interpreter access -------------------------------------------------
 bool Cppyy::Compile(const std::string& code, bool silent)
 {
-    if (silent) {
-      clangSilent diagSuppr(gInterp->getSema().getDiagnostics());
-      return gInterp->declare(code.c_str());
-    }
-
-    return gInterp->declare(code.c_str());
+    return InterOp::Declare(gInterp, code.c_str(), silent);
 }
 
 std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 {
     if (klass && obj && !InterOp::IsNamespace((TCppScope_t)klass))
-        return gInterp->toString(InterOp::GetCompleteName(klass).c_str(),
+        return InterOp::ObjToString(gInterp, InterOp::GetCompleteName(klass).c_str(),
                 (void*)obj);
     return "";
 }
