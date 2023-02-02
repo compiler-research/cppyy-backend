@@ -13,11 +13,7 @@
 
 // #include "TCling.h"
 
-#include "clang/AST/Decl.h"
-
-#include "clang/Frontend/CompilerInstance.h"
-
-#include "cling/Interpreter/InterOp.h"
+#include "clang/Interpreter/InterOp.h"
 
 // some more types; assumes Cppyy.h follows Python.h
 #ifndef PY_LONG_LONG

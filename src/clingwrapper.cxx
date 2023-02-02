@@ -12,19 +12,6 @@
 
 #include <dlfcn.h>
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-
-#include "clang/Basic/Version.h"
-#include "clang/Config/config.h"
-#include "clang/Sema/Sema.h"
-
-#include "cling/Interpreter/DynamicLibraryManager.h"
-#include "cling/Interpreter/InterOp.h"
-#include "cling/Interpreter/Interpreter.h"
-#include "cling/Interpreter/Transaction.h"
-
 // Standard
 #include <assert.h>
 #include <algorithm>     // for std::count, std::remove
