@@ -168,47 +168,13 @@ static struct Signalmap_t {
 //     }
 // };
 
-std::string GetExecutablePath(const char *Argv0, void *MainAddr) {
-  return llvm::sys::fs::getMainExecutable(Argv0, MainAddr);
-}
-
-static std::string MakeResourcesPath() {
-  // Dir is bin/ or lib/, depending on where BinaryPath is.
-  void *MainAddr = (void *)(intptr_t)GetExecutablePath;
-  std::string BinaryPath = GetExecutablePath(/*Argv0=*/nullptr, MainAddr);
-
-  // build/tools/clang/unittests/Interpreter/Executable -> build/
-  llvm::StringRef Dir = llvm::sys::path::parent_path(BinaryPath);
-
-  Dir = llvm::sys::path::parent_path(Dir);
-  Dir = llvm::sys::path::parent_path(Dir);
-  Dir = llvm::sys::path::parent_path(Dir);
-  Dir = llvm::sys::path::parent_path(Dir);
-  //Dir = sys::path::parent_path(Dir);
-  llvm::SmallString<128> P(Dir);
-  llvm::sys::path::append(P, llvm::Twine("lib") + CLANG_LIBDIR_SUFFIX,
-                          "clang", CLANG_VERSION_STRING);
-
-  return std::string(P.str());
-}
-
-static std::unique_ptr<cling::Interpreter> createInterpreter() {
-  std::string MainExecutableName =
-    llvm::sys::fs::getMainExecutable(nullptr, nullptr);
-  std::string ResourceDir = MakeResourcesPath();
-  std::vector<const char *> ClingArgv = {"-resource-dir", ResourceDir.c_str(),
-                                         "-std=c++14"};
-  ClingArgv.insert(ClingArgv.begin(), MainExecutableName.c_str());
-  return std::make_unique<cling::Interpreter>(ClingArgv.size(), &ClingArgv[0]);
-}
-
-static std::unique_ptr<cling::Interpreter> gInterp;
+static InterOp::TInterp_t gInterp;
 
 class ApplicationStarter {
 public:
     ApplicationStarter() {
         // Create the interpreter and initilize the pointer
-        gInterp = createInterpreter();
+        gInterp = InterOp::CreateInterpreter();
 
         // fill out the builtins
         std::set<std::string> bi{g_builtins};
@@ -727,7 +693,7 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
 
     // CallWrapper* wrap = (CallWrapper*)method;
     const InterOp::CallFuncWrapper_t& faceptr = 
-        InterOp::GetFunctionCallWrapper((InterOp::TInterp_t) gInterp.get(), method);
+        InterOp::GetFunctionCallWrapper(gInterp, method);
     // if (!is_ready(wrap, is_direct))
     //     return false;        // happens with compilation error
 
@@ -867,8 +833,7 @@ Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
 
 Cppyy::TCppFuncAddr_t Cppyy::GetFunctionAddress(TCppMethod_t method, bool check_enabled)
 {
-    return (TCppFuncAddr_t) InterOp::GetFunctionAddress(
-        (InterOp::TInterp_t) gInterp.get(), method);
+    return (TCppFuncAddr_t) InterOp::GetFunctionAddress(gInterp, method);
 }
 
 
@@ -1717,8 +1682,7 @@ std::string Cppyy::GetTypeAsString(TCppType_t type)
 
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)
 {
-    return InterOp::GetVariableOffset(
-        (InterOp::TInterp_t) gInterp.get(), var);
+    return InterOp::GetVariableOffset(gInterp, var);
 }
 
 // static inline
