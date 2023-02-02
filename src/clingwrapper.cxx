@@ -1824,8 +1824,7 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 
 Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name)
 {
-    InterOp::InstantiateClassTemplate(
-        (InterOp::TInterp_t) gInterp.get(), templ_name.c_str());
+    return InterOp::InstantiateClassTemplate(gInterp, templ_name.c_str());
 }
 
 Cppyy::TCppScope_t Cppyy::DumpScope(TCppScope_t scope)
