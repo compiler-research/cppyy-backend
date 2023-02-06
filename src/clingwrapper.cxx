@@ -186,10 +186,15 @@ public:
             InterOp::Process(gInterp, s.str().c_str());
         }
 
-        // XXX: Fix all these hard includes 
-        InterOp::AddIncludePath(gInterp, "/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/include");
-        InterOp::AddIncludePath(gInterp, "/home/sudo-panda/Documents/cppyy/src/cling/cling-obj/lib/clang/9.0.1/include");
-        InterOp::LoadLibrary(gInterp, "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30", /* lookup= */ false);
+        // XXX: Fix all these hard includes
+        std::string CPT_DIR="/mnt/E/Workspaces/cling";
+        std::string INTEROP_DIR="/mnt/E/Workspaces/cppyy/src/InterOp/install";
+        InterOp::AddIncludePath(gInterp, (CPT_DIR + "/src/cling/cling-src/tools/cling/include").c_str());
+        InterOp::AddIncludePath(gInterp, (CPT_DIR + "/src/cling/builddir/lib/clang/13.0.0/include").c_str());
+        InterOp::AddIncludePath(gInterp, (CPT_DIR + "/src/cling/cling-src/include").c_str());
+        InterOp::AddIncludePath(gInterp, (CPT_DIR + "/src/cling/builddir/include").c_str());
+        InterOp::AddIncludePath(gInterp, (INTEROP_DIR + "/include").c_str());
+        InterOp::LoadLibrary(gInterp, "libstdc++", /* lookup= */ true);
 
         // load frequently used headers
         const char* code =
