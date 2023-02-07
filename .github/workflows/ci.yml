@@ -108,15 +108,7 @@ jobs:
       run: |
         # Install deps
         conda install -y -q -c conda-forge \
-          'xeus>=2.0,<3.0' \
-          'nlohmann_json>=3.9.1,<3.10' \
-          'cppzmq>=4.6.0,<5' \
-          'xtl>=0.7,<0.8' \
-          pugixml \
-          'cxxopts>=2.1.1,<2.2' \
-          libuuid \
-          pytest \
-          jupyter_kernel_test
+          pytest
     - name: Install cling on Linux
       if: runner.os == 'Linux'
       run: |
@@ -126,6 +118,8 @@ jobs:
         cpt.py --create-dev-env Debug --with-workdir=./cling-build/
         export CPT_DIR=$PWD
         cd ..
+        # We need CPT_DIR later
+        echo "CPT_DIR=$CPT_DIR" >> $GITHUB_ENV
     - name: Install InterOp on Linux
       if: runner.os == 'Linux'
       run: |
@@ -138,6 +132,8 @@ jobs:
         cd ../install
         export INTEROP_DIR=$PWD
         cd ../..
+        # We need INTEROP_DIR later
+        echo "INTEROP_DIR=$INTEROP_DIR" >> $GITHUB_ENV
     - name: Install cppyy-backend on Linux
       if: runner.os == 'Linux'
       run: |
@@ -156,6 +152,8 @@ jobs:
         cd ../python
         export CB_PYTHON_DIR=$PWD
         cd ../..
+        # We need CB_PYTHON_DIR later
+        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
     - name: Install CPyCppyy on Linux
       if: runner.os == 'Linux'
       run: |
@@ -169,6 +167,8 @@ jobs:
         #
         export CPYCPPYY_DIR=$PWD
         cd ../..
+        # We need CPYCPPYY_DIR later
+        echo "CPYCPPYY_DIR=$CPYCPPYY_DIR" >> $GITHUB_ENV
     - name: Install cppyy on Linux
       if: runner.os == 'Linux'
       run: |
@@ -188,6 +188,8 @@ jobs:
         source .venv/bin/activate
         export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
         python -c "import cppyy"
+        # We need PYTHONPATH later
+        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
     - name: Run the tests on Linux
       if: runner.os == 'Linux'
       run: |
@@ -195,27 +197,12 @@ jobs:
         cd cppyy/test
         make all
         python -m pytest -sv
-#
-#    - name: Build xeus-clang-repl on Linux
-#      if: runner.os == 'Linux'
-#      run: |
-#        # Build and Install xeus-clang-repl
-#        mkdir build
-#        cd build
-#        PP=$KERNEL_PYTHON_PREFIX
-#        if [[ -z "$PP" ]]; then
-#          PP=$(conda info --base)
-#        fi
-#        cmake -DCMAKE_PREFIX_PATH=$PP -DCMAKE_INSTALL_PREFIX=$PP -DCMAKE_INSTALL_LIBDIR=lib -DLLVM_CONFIG_EXTRA_PATH_HINTS=$PATH_TO_LLVM_BUILD -DLLVM_USE_LINKER=gold ..
-#        make install
-#
-#    - name: Archive clang-dev artifact
-#      uses: actions/upload-artifact@v3
-#      with:
-#        name: clang-dev
-#        path: clang-dev.tar.bz2
-#        retention-days: 7
-#
+    - name: Archive clang-dev artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: clang-dev
+        path: clang-dev.tar.bz2
+        retention-days: 7
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
