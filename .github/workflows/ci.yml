@@ -16,18 +16,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubu22-gcc9-clang13
-            os: ubuntu-22.04
-            compiler: gcc-9
-            clang-runtime: '13'
+#          - name: ubu22-gcc9-clang13
+#            os: ubuntu-22.04
+#            compiler: gcc-9
+#            clang-runtime: '13'
           - name: ubu22-gcc9-clang14
             os: ubuntu-22.04
             compiler: gcc-9
             clang-runtime: '14'
-          - name: ubu22-gcc9-clang15
-            os: ubuntu-22.04
-            compiler: gcc-9
-            clang-runtime: '15'
+#          - name: ubu22-gcc9-clang15
+#            os: ubuntu-22.04
+#            compiler: gcc-9
+#            clang-runtime: '15'
     steps:
     - uses: actions/checkout@v3
       with:
@@ -117,7 +117,7 @@ jobs:
         # Install cling by CPT
         wget https://raw.githubusercontent.com/root-project/cling/master/tools/packaging/cpt.py
         chmod +x cpt.py
-        ./cpt.py --create-dev-env Debug --with-workdir=./cling-build/
+        ./cpt.py --create-dev-env Release --with-workdir=./cling-build/
         export CPT_DIR=$PWD
         cd ..
         # We need CPT_DIR later
