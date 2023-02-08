@@ -103,6 +103,12 @@ jobs:
         tar -cjf clang-dev.tar.bz2 ./clang-dev
         # We need PATH_TO_LLVM_BUILD later
         echo "PATH_TO_LLVM_BUILD=$PATH_TO_LLVM_BUILD" >> $GITHUB_ENV
+    - name: Archive clang-dev artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: clang-dev
+        path: clang-dev.tar.bz2
+        retention-days: 7
     - name: Install deps on Linux
       if: runner.os == 'Linux'
       run: |
@@ -115,7 +121,7 @@ jobs:
         # Install cling by CPT
         wget https://raw.githubusercontent.com/root-project/cling/master/tools/packaging/cpt.py
         chmod +x cpt.py
-        cpt.py --create-dev-env Debug --with-workdir=./cling-build/
+        ./cpt.py --create-dev-env Debug --with-workdir=./cling-build/
         export CPT_DIR=$PWD
         cd ..
         # We need CPT_DIR later
@@ -197,12 +203,6 @@ jobs:
         cd cppyy/test
         make all
         python -m pytest -sv
-    - name: Archive clang-dev artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: clang-dev
-        path: clang-dev.tar.bz2
-        retention-days: 7
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
