@@ -70,7 +70,7 @@ jobs:
       run: |
         # Install deps
         sudo apt-get update
-        sudo apt-get install git g++ debhelper devscripts gnupg python
+        sudo apt-get install git g++ debhelper devscripts gnupg python3
         conda install -y -q -c conda-forge \
           distro \
           pytest
