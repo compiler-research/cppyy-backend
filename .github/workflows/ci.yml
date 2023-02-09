@@ -80,11 +80,11 @@ jobs:
       with:
         path: |
           cling-build
-          cling
           /tmp/cling-obj
           cpt.py
         #TODO: Fix key to relay to CPT patches and llvm version
-        key: ${{ runner.os }}-${{ matrix.os }}-${{ matrix.compiler }}-clang-${{ matrix.clang-runtime }}.x-patch-${{ hashFiles('patches/llvm/*') }}
+        #key: ${{ runner.os }}-${{ matrix.os }}-${{ matrix.compiler }}-clang-${{ matrix.clang-runtime }}.x-patch-${{ hashFiles('patches/llvm/*') }}
+        key: ${{ runner.os }}-${{ matrix.os }}-${{ matrix.compiler }}-clang-${{ matrix.clang-runtime }}.x }}
     - name: Install cling (by CPT) on Linux
       if: ${{ runner.os == 'Linux' && steps.cling-build-cache.outputs.cache-hit != 'true' }}
       run: |
