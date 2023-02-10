@@ -16,14 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-#          - name: ubu22-gcc9-clang13
-#            os: ubuntu-22.04
-#            compiler: gcc-9
-#            clang-runtime: '13'
-          - name: ubu22-gcc9-clang14
+          - name: ubu22-gcc9-clang13
             os: ubuntu-22.04
             compiler: gcc-9
-            clang-runtime: '14'
+            clang-runtime: '13'
+#          - name: ubu22-gcc9-clang14
+#            os: ubuntu-22.04
+#            compiler: gcc-9
+#            clang-runtime: '14'
 #          - name: ubu22-gcc9-clang15
 #            os: ubuntu-22.04
 #            compiler: gcc-9
@@ -93,7 +93,7 @@ jobs:
         chmod +x cpt.py
         sed -i '2637s/.*/    CPT_SRC_DIR = install_prefix()/' cpt.py
         sed -i "674i\    CPT_SRC_DIR = os.path.join(CLING_SRC_DIR, 'tools', 'packaging')" cpt.py
-        conda run --no-capture-output ./cpt.py --create-dev-env Release --with-workdir=./cling-build/
+        conda run --no-capture-output ./cpt.py --no-test --create-dev-env Release --with-workdir=./cling-build/
         export CPT_DIR=$PWD
         cd ..
         # We need CPT_DIR later
