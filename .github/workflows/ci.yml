@@ -93,7 +93,7 @@ jobs:
         chmod +x cpt.py
         sed -i '2637s/.*/    CPT_SRC_DIR = install_prefix()/' cpt.py
         sed -i "674i\    CPT_SRC_DIR = os.path.join(clangdir, 'tools', 'cling', 'tools', 'packaging')" cpt.py
-        sed -i '615d' cpt.py
+        sed -i '613,618d' cpt.py
         conda run --no-capture-output ./cpt.py --create-dev-env Release --with-workdir=./cling-build/
         export CPT_DIR=$PWD
         cd ..
