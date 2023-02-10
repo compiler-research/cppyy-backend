@@ -20,14 +20,10 @@ jobs:
             os: ubuntu-22.04
             compiler: gcc-9
             clang-runtime: '13'
-#          - name: ubu22-gcc9-clang14
-#            os: ubuntu-22.04
-#            compiler: gcc-9
-#            clang-runtime: '14'
-#          - name: ubu22-gcc9-clang15
-#            os: ubuntu-22.04
-#            compiler: gcc-9
-#            clang-runtime: '15'
+          - name: ubu22-gcc9-clang14
+            os: ubuntu-22.04
+            compiler: gcc-9
+            clang-runtime: '14'
     steps:
     - uses: actions/checkout@v3
       with:
