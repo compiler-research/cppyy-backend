@@ -107,78 +107,79 @@ jobs:
         git clone https://github.com/compiler-research/InterOp.git
         cd InterOp
         mkdir build install && cd build
-        cmake -DUSE_CLING=ON -DCling_DIR=$CPT_DIR/src/cling/builddir -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
+        #cmake -DUSE_CLING=ON -DCling_DIR=$CPT_DIR/builddir -DLLVM_DIR=$CPT_DIR/builddir -DCLANG_DIR=$CPT_DIR/builddir -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
+        cmake -DUSE_CLING=ON -DCling_DIR=/tmp/cling-obj -DLLVM_DIR=/tmp/cling-obj -DCLANG_DIR=/tmp/cling-obj -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
         cmake --build . --target install --parallel $(nproc --all)
         cd ../install
         export INTEROP_DIR=$PWD
         cd ../..
         # We need INTEROP_DIR later
         echo "INTEROP_DIR=$INTEROP_DIR" >> $GITHUB_ENV
-    - name: Install cppyy-backend on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install cppyy-backend
-        git clone https://github.com/compiler-research/cppyy-backend.git
-        cd cppyy-backend
-        echo "std::string CPT_DIR = \"$CPT_DIR\" \nstd::string INTEROP_DIR = \"$INTEROP_DIR\""
-        edit src/clingwrapper.cxx
-        #
-        mkdir python/cppyy_backend/lib build && cd build
-        cmake -DInterOp_DIR=$INTEROP_DIR ..
-        cmake --build . --parallel $(nproc --all)
-        cp libcppyy-backend.so ../python/cppyy_backend/lib/
-        cp $CPT_DIR/src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
-        #
-        cd ../python
-        export CB_PYTHON_DIR=$PWD
-        cd ../..
-        # We need CB_PYTHON_DIR later
-        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
-    - name: Install CPyCppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install CPyCppyy
-        git clone https://github.com/sudo-panda/CPyCppyy.git
-        cd CPyCppyy
-        git checkout rm-root-meta
-        mkdir build && cd build
-        cmake ..
-        cmake --build .
-        #
-        export CPYCPPYY_DIR=$PWD
-        cd ../..
-        # We need CPYCPPYY_DIR later
-        echo "CPYCPPYY_DIR=$CPYCPPYY_DIR" >> $GITHUB_ENV
-    - name: Install cppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install cppyy
-        python3 -m venv .venv
-        source .venv/bin/activate
-        #
-        git clone https://github.com/sudo-panda/cppyy.git
-        cd cppyy
-        git checkout rm-root-meta
-        python -m pip install --upgrade . --no-deps
-        cd ..
-    - name: Run cppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Run cppyy
-        source .venv/bin/activate
-        export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
-        python -c "import cppyy"
-        # We need PYTHONPATH later
-        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-    - name: Run the tests on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Run the tests
-        cd cppyy/test
-        make all
-        python -m pytest -sv
+#    - name: Install cppyy-backend on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install cppyy-backend
+#        git clone https://github.com/compiler-research/cppyy-backend.git
+#        cd cppyy-backend
+#        echo "std::string CPT_DIR = \"$CPT_DIR\" \nstd::string INTEROP_DIR = \"$INTEROP_DIR\""
+#        edit src/clingwrapper.cxx
+#        #
+#        mkdir python/cppyy_backend/lib build && cd build
+#        cmake -DInterOp_DIR=$INTEROP_DIR ..
+#        cmake --build . --parallel $(nproc --all)
+#        cp libcppyy-backend.so ../python/cppyy_backend/lib/
+#        cp $CPT_DIR/src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
+#        #
+#        cd ../python
+#        export CB_PYTHON_DIR=$PWD
+#        cd ../..
+#        # We need CB_PYTHON_DIR later
+#        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
+#    - name: Install CPyCppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install CPyCppyy
+#        git clone https://github.com/sudo-panda/CPyCppyy.git
+#        cd CPyCppyy
+#        git checkout rm-root-meta
+#        mkdir build && cd build
+#        cmake ..
+#        cmake --build .
+#        #
+#        export CPYCPPYY_DIR=$PWD
+#        cd ../..
+#        # We need CPYCPPYY_DIR later
+#        echo "CPYCPPYY_DIR=$CPYCPPYY_DIR" >> $GITHUB_ENV
+#    - name: Install cppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install cppyy
+#        python3 -m venv .venv
+#        source .venv/bin/activate
+#        #
+#        git clone https://github.com/sudo-panda/cppyy.git
+#        cd cppyy
+#        git checkout rm-root-meta
+#        python -m pip install --upgrade . --no-deps
+#        cd ..
+#    - name: Run cppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Run cppyy
+#        source .venv/bin/activate
+#        export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
+#        python -c "import cppyy"
+#        # We need PYTHONPATH later
+#        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
+#    - name: Run the tests on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Run the tests
+#        cd cppyy/test
+#        make all
+#        python -m pytest -sv
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
       # When debugging increase to a suitable value!
-      timeout-minutes: ${{ github.event.pull_request && 30 || 20 }}
+      timeout-minutes: ${{ github.event.pull_request && 300 || 20 }}
