@@ -108,7 +108,7 @@ jobs:
         cd InterOp
         mkdir build install && cd build
         cmake -DUSE_CLING=ON -DCling_DIR=$CPT_DIR/src/cling/builddir -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
-        cmake --build . --target install
+        cmake --build . --target install --parallel $(nproc --all)
         cd ../install
         export INTEROP_DIR=$PWD
         cd ../..
@@ -125,7 +125,7 @@ jobs:
         #
         mkdir python/cppyy_backend/lib build && cd build
         cmake -DInterOp_DIR=$INTEROP_DIR ..
-        cmake --build .
+        cmake --build . --parallel $(nproc --all)
         cp libcppyy-backend.so ../python/cppyy_backend/lib/
         cp $CPT_DIR/src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
         #
