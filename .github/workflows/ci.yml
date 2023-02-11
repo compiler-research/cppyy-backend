@@ -82,16 +82,17 @@ jobs:
         #key: ${{ runner.os }}-${{ matrix.os }}-${{ matrix.compiler }}-clang-${{ matrix.clang-runtime }}.x-patch-${{ hashFiles('patches/llvm/*') }}
         key: ${{ runner.os }}-${{ matrix.os }}-${{ matrix.compiler }}-clang-${{ matrix.clang-runtime }}.x
     - name: Install cling (by CPT) on Linux
-      if: ${{ runner.os == 'Linux' && steps.cling-build-cache.outputs.cache-hit != 'true' }}
+      if: runner.os == 'Linux'
       run: |
-        # Install cling by CPT
-        wget https://raw.githubusercontent.com/root-project/cling/master/tools/packaging/cpt.py
-        chmod +x cpt.py
-        sed -i '2637s/.*/    CPT_SRC_DIR = install_prefix()/' cpt.py
-        sed -i "674i\    CPT_SRC_DIR = os.path.join(CLING_SRC_DIR, 'tools', 'packaging')" cpt.py
-        conda run --no-capture-output ./cpt.py --no-test --create-dev-env Release --with-workdir=./cling-build/
+        if [[ "${{ steps.clang-build-cache.outputs.cache-hit }}" != "true" ]]; then
+          # Install cling by CPT
+          wget https://raw.githubusercontent.com/root-project/cling/master/tools/packaging/cpt.py
+          chmod +x cpt.py
+          sed -i '2637s/.*/    CPT_SRC_DIR = install_prefix()/' cpt.py
+          sed -i "674i\    CPT_SRC_DIR = os.path.join(CLING_SRC_DIR, 'tools', 'packaging')" cpt.py
+          conda run --no-capture-output ./cpt.py --no-test --create-dev-env Release --with-workdir=./cling-build/
+        fi
         export CPT_DIR=$PWD
-        cd ..
         # We need CPT_DIR later
         echo "CPT_DIR=$CPT_DIR" >> $GITHUB_ENV
 #    - name: Archive clang-build artifact
