@@ -115,26 +115,28 @@ jobs:
         cd ../..
         # We need INTEROP_DIR later
         echo "INTEROP_DIR=$INTEROP_DIR" >> $GITHUB_ENV
-#    - name: Install cppyy-backend on Linux
-#      if: runner.os == 'Linux'
-#      run: |
-#        # Install cppyy-backend
-#        git clone https://github.com/compiler-research/cppyy-backend.git
-#        cd cppyy-backend
-#        echo "std::string CPT_DIR = \"$CPT_DIR\" \nstd::string INTEROP_DIR = \"$INTEROP_DIR\""
-#        edit src/clingwrapper.cxx
-#        #
-#        mkdir python/cppyy_backend/lib build && cd build
-#        cmake -DInterOp_DIR=$INTEROP_DIR ..
-#        cmake --build . --parallel $(nproc --all)
-#        cp libcppyy-backend.so ../python/cppyy_backend/lib/
-#        cp $CPT_DIR/src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
-#        #
-#        cd ../python
-#        export CB_PYTHON_DIR=$PWD
-#        cd ../..
-#        # We need CB_PYTHON_DIR later
-#        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
+    - name: Install cppyy-backend on Linux
+      if: runner.os == 'Linux'
+      run: |
+        # Install cppyy-backend
+        #git clone https://github.com/compiler-research/cppyy-backend.git
+        #cd cppyy-backend
+        #echo "std::string CPT_DIR = \"$CPT_DIR\" \nstd::string INTEROP_DIR = \"$INTEROP_DIR\""
+        #edit src/clingwrapper.cxx
+        sed -i "s#std::string CPT_DIR=\".*\";#std::string CPT_DIR=\"$CPT_DIR\";#" src/clingwrapper.cxx
+        sed -i "s#std::string INTEROP_DIR=\".*\";#std::string INTEROP_DIR=\"$INTEROP_DIR\";#" src/clingwrapper.cxx
+        #
+        mkdir python/cppyy_backend/lib build && cd build
+        cmake -DInterOp_DIR=$INTEROP_DIR ..
+        cmake --build . --parallel $(nproc --all)
+        cp libcppyy-backend.so ../python/cppyy_backend/lib/
+        cp src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
+        #
+        cd ../python
+        export CB_PYTHON_DIR=$PWD
+        cd ../..
+        # We need CB_PYTHON_DIR later
+        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
 #    - name: Install CPyCppyy on Linux
 #      if: runner.os == 'Linux'
 #      run: |
