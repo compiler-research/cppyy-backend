@@ -84,7 +84,7 @@ jobs:
     - name: Install cling (by CPT) on Linux
       if: runner.os == 'Linux'
       run: |
-        if [[ "${{ steps.clang-build-cache.outputs.cache-hit }}" != "true" ]]; then
+        if [[ "${{ steps.cling-build-cache.outputs.cache-hit }}" != "true" ]]; then
           # Install cling by CPT
           wget https://raw.githubusercontent.com/root-project/cling/master/tools/packaging/cpt.py
           chmod +x cpt.py
