@@ -295,7 +295,9 @@ bool Cppyy::Compile(const std::string& code, bool silent)
 std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 {
     if (klass && obj && !InterOp::IsNamespace((TCppScope_t)klass))
-        return InterOp::ObjToString(gInterp, InterOp::GetCompleteName(klass).c_str(),
+        return InterOp::ObjToString(
+                gInterp, 
+                InterOp::GetCompleteName(gSema, klass).c_str(),
                 (void*)obj);
     return "";
 }
@@ -1054,7 +1056,7 @@ std::string Cppyy::GetFinalName(TCppType_t klass)
 
 std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 {
-    return InterOp::GetCompleteName(klass);
+    return InterOp::GetCompleteName(gSema, klass);
 }
 
 bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
@@ -1262,7 +1264,7 @@ std::string Cppyy::GetMethodName(TCppMethod_t method)
 
 std::string Cppyy::GetMethodFullName(TCppMethod_t method)
 {
-    return InterOp::GetCompleteName(method);
+    return InterOp::GetCompleteName(gSema, method);
 }
 
 // std::string Cppyy::GetMethodMangledName(TCppMethod_t method)
