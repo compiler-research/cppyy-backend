@@ -162,7 +162,7 @@ class ApplicationStarter {
 public:
     ApplicationStarter() {
         // Create the interpreter and initilize the pointer
-        gInterp = InterOp::CreateInterpreter();
+        gInterp = InterOp::CreateInterpreter("");
         gSema = InterOp::GetSema(gInterp);
 
         // fill out the builtins
