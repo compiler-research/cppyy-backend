@@ -396,6 +396,10 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     return InterOp::GetCanonicalType(type);
 }
 
+Cppyy::TCppType_t Cppyy::GetRealType(TCppType_t type) {
+    return InterOp::GetUnderlyingType(type);
+}
+
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
     return InterOp::GetType(getSema(), name);
 }
