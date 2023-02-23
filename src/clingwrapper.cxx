@@ -1071,12 +1071,12 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)
 // // class reflection information ----------------------------------------------
 std::string Cppyy::GetFinalName(TCppType_t klass)
 {
-    return InterOp::GetName(klass);
+    return InterOp::GetCompleteName(getSema(), klass);
 }
 
 std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 {
-    return InterOp::GetCompleteName(getSema(), klass);
+    return InterOp::GetQualifiedCompleteName(getSema(), klass);
 }
 
 bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
