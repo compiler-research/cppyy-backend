@@ -400,6 +400,10 @@ Cppyy::TCppType_t Cppyy::GetRealType(TCppType_t type) {
     return InterOp::GetUnderlyingType(type);
 }
 
+bool Cppyy::IsClassType(TCppType_t type) {
+    return InterOp::IsRecordType(type);
+}
+
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name) {
     return InterOp::GetType(getSema(), name);
 }
