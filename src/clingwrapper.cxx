@@ -802,7 +802,7 @@ char* Cppyy::CallS(
 }
 
 Cppyy::TCppObject_t Cppyy::CallConstructor(
-    TCppMethod_t method, TCppType_t /* klass */, size_t nargs, void* args)
+    TCppMethod_t method, TCppScope_t /* klass */, size_t nargs, void* args)
 {
     void* obj = nullptr;
     if (WrapperCall(method, nargs, args, nullptr, &obj))
