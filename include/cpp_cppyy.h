@@ -81,6 +81,8 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string ResolveEnum(TCppScope_t enum_scope);
     RPY_EXPORTED
+    bool IsClassType(TCppType_t type);
+    RPY_EXPORTED
     TCppType_t GetType(const std::string &name);
     RPY_EXPORTED
     TCppType_t GetComplexType(const std::string &element_type);
