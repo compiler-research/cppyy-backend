@@ -179,6 +179,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsTemplate(TCppScope_t scope);
     RPY_EXPORTED
+    bool IsTemplateInstantiation(TCppScope_t scope);
+    RPY_EXPORTED
     bool IsAbstract(TCppScope_t scope);
     RPY_EXPORTED
     bool IsEnum(TCppScope_t scope);
