@@ -313,7 +313,9 @@ std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 // // name to opaque C++ scope representation -----------------------------------
 std::string Cppyy::ResolveName(const std::string& cppitem_name)
 {
+#ifdef PRINT_DEBUG
     printf("Resolve name input = %s\n", cppitem_name.c_str());
+#endif
     return cppitem_name;
 
 // // Fully resolve the given name to the final type name.
@@ -455,7 +457,9 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
                                    TCppScope_t parent_scope)
 {
     if (name.find("::") != std::string::npos) {
+#ifdef PRINT_DEBUG
         printf("Wrong call to GetScope\n");
+#endif
     }
 
     return InterOp::GetScope(getSema(), name, parent_scope);
@@ -702,9 +706,13 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
         void* smallbuf[SMALL_ARGS_N];
         if (nargs) runRelease = copy_args(args, nargs, smallbuf);
         // CLING_CATCH_UNCAUGHT_
+#ifdef PRINT_DEBUG
         printf("start execution\n");
+#endif
         fgen(self, (int)nargs, smallbuf, result);
+#ifdef PRINT_DEBUG
         printf("executed\n");
+#endif
         // _CLING_CATCH_UNCAUGHT
     } else {
         std::vector<void*> buf(nargs);
@@ -755,10 +763,17 @@ T CallT(Cppyy::TCppMethod_t method, Cppyy::TCppObject_t self, size_t nargs, void
     return (T)-1;
 }
 
+#ifdef PRINT_DEBUG
+    #define _IMP_CALL_PRINT_STMT(type)                                       \
+        printf("IMP CALL with type: %s\n", #type);
+#else
+    #define _IMP_CALL_PRINT_STMT(type)
+#endif
+
 #define CPPYY_IMP_CALL(typecode, rtype)                                      \
 rtype Cppyy::Call##typecode(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args)\
 {                                                                            \
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@\n");                                   \
+    _IMP_CALL_PRINT_STMT(rtype)                                              \
     return CallT<rtype>(method, self, nargs, args);                          \
 }
 
@@ -1184,7 +1199,9 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     intptr_t offset = -1;
     if (InterOp::IsSubclass(derived, base)) {
         offset = InterOp::GetBaseClassOffset(getSema(), derived, base);
+#ifdef PRINT_DEBUG
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
+#endif
     }
 // // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
 //     if (derived == base || !(base && derived))
@@ -1448,7 +1465,9 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
+#ifdef PRINT_DEBUG
     printf("========== GMT: %s; %s\n", name.c_str(), proto.c_str());
+#endif
 // // There is currently no clean way of extracting a templated method out of ROOT/meta
 // // for a variety of reasons, none of them fundamental. The game played below is to
 // // first get any pre-existing functions already managed by ROOT/meta, but if that fails,
