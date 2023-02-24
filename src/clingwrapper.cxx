@@ -156,7 +156,7 @@ static struct Signalmap_t {
 // };
 
 static InterOp::TInterp_t getInterp() {
-    static InterOp::TInterp_t gInterp = InterOp::CreateInterpreter("");
+    static InterOp::TInterp_t gInterp = InterOp::CreateInterpreter();
     return gInterp;
 }
 
@@ -193,14 +193,15 @@ public:
             InterOp::Process(I, s.str().c_str());
         }
 
-        // XXX: Fix all these hard includes
-        std::string CPT_DIR="/mnt/E/Workspaces/cling";
-        std::string INTEROP_DIR="/mnt/E/Workspaces/cppyy/src/InterOp/install";
-        InterOp::AddIncludePath(I, (CPT_DIR + "/src/cling/cling-src/tools/cling/include").c_str());
-        InterOp::AddIncludePath(I, (CPT_DIR + "/src/cling/builddir/lib/clang/13.0.0/include").c_str());
-        InterOp::AddIncludePath(I, (CPT_DIR + "/src/cling/cling-src/include").c_str());
-        InterOp::AddIncludePath(I, (CPT_DIR + "/src/cling/builddir/include").c_str());
-        InterOp::AddIncludePath(I, (INTEROP_DIR + "/include").c_str());
+        // This would give us something like:
+        // /home/vvassilev/workspace/builds/scratch/cling-build/builddir/lib/clang/13.0.0
+        const char * ResourceDir = InterOp::GetResourceDir(I);
+        std::string ClingSrc = std::string(ResourceDir) + "/../../../../cling-src";
+        std::string ClingBuildDir = std::string(ResourceDir) + "/../../../";
+        InterOp::AddIncludePath(I, (ClingSrc + "/tools/cling/include").c_str());
+        InterOp::AddIncludePath(I, (ClingSrc + "/include").c_str());
+        InterOp::AddIncludePath(I, (ClingBuildDir + "/include").c_str());
+        InterOp::AddIncludePath(I, (std::string(INTEROP_DIR) + "/include").c_str());
         InterOp::LoadLibrary(I, "libstdc++", /* lookup= */ true);
 
         // load frequently used headers

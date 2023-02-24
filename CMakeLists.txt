@@ -67,6 +67,9 @@ else()
     add_dependencies(libInterOp InterOp)
 endif()
 
+set_source_files_properties(src/clingwrapper.cxx
+  PROPERTIES COMPILE_DEFINITIONS "INTEROP_DIR=\"${_interop_install_dir}\"")
+
 set_property(TARGET libInterOp PROPERTY IMPORTED_LOCATION ${_interop_install_dir}/lib/${_interop_static_archive_name})
 
 if (APPLE)
