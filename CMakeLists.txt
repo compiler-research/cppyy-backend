@@ -90,7 +90,7 @@ add_dependencies(cppyy-backend libInterOp)
 #     # clangLex
 # )
 
-include_directories(${_interop_install_dir}/include)
+target_include_directories(cppyy-backend PUBLIC ${_interop_install_dir}/include)
 
 # target_link_libraries(cppyy-backend ${CLING_LIBS})
 # target_link_libraries(cppyy-backend ${PROJECT_SOURCE_DIR}/../cling/builddir/lib/libcling.so)
