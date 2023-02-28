@@ -1871,7 +1871,26 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 
 Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(const std::string& templ_name)
 {
-    return InterOp::InstantiateClassTemplate(getInterp(), templ_name.c_str());
+  // FIXME: Propagate that on the CPyCppyy side. We get std::blah<int, float>
+  std::string template_decl_string = templ_name.substr(0, templ_name.find('<'));
+  std::string arg_string = templ_name;
+  arg_string.erase(0, 1); // remove the <
+  arg_string.pop_back(); // pop the >
+  std::vector<InterOp::TCppType_t> args;
+  InterOp::TCppSema_t S = InterOp::GetSema(getInterp());
+  bool done = false;
+  do {
+    size_t pos = arg_string.find(',');
+    if (pos == std::string::npos)
+      done = true;
+    else
+      arg_string = arg_string.substr(0, pos);
+    args.push_back(InterOp::GetType(S, arg_string));
+
+  } while (!done);
+
+  TCppScope_t template_decl = InterOp::GetNamed(S, template_decl_string);
+  return InterOp::InstantiateClassTemplate(getInterp(), template_decl, args.data(), args.size());
 }
 
 void Cppyy::DumpScope(TCppScope_t scope)
