@@ -140,7 +140,7 @@ jobs:
         cmake -DInterOp_DIR=$INTEROP_DIR ..
         cmake --build . --parallel $(nproc --all)
         cp libcppyy-backend.so ../python/cppyy_backend/lib/
-        cp src/cling/builddir/lib/libcling.so ../python/cppyy_backend/lib/
+        cp $LLVM_BUILD_DIR/lib/libcling.so ../python/cppyy_backend/lib/
         #
         cd ../python
         export CB_PYTHON_DIR=$PWD
