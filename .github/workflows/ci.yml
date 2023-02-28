@@ -110,6 +110,7 @@ jobs:
                 ../llvm
           cmake --build . --target clang --parallel $(nproc --all)
           cmake --build . --target cling --parallel $(nproc --all)
+          cmake --build . --target libcling --parallel $(nproc --all)
           # Now build gtest.a and gtest_main for InterOp to run its tests.
           cmake --build . --target gtest_main --parallel $(nproc --all)
           cd ../../
