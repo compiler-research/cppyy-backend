@@ -196,6 +196,8 @@ jobs:
         # Run the tests
         cd cppyy/test
         make all || true
+
+        python -m pip install pytest
         python -m pytest -sv
     - name: Setup tmate session
       if: ${{ failure() }}
