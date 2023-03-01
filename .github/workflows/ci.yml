@@ -196,6 +196,7 @@ jobs:
         source .venv/bin/activate
         cd cppyy/test
         make all || true
+        python -m pip install --upgrade pip
         python -m pip install pytest
         python -m pytest --setup-plan | grep -o -P '(?<=test\/).*(?=\ \(fixtures)' | \
           while read line ; do
