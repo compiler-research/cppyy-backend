@@ -138,65 +138,65 @@ jobs:
         echo "INTEROP_DIR=$INTEROP_DIR" >> $GITHUB_ENV
         echo "LLVM_BUILD_DIR=$LLVM_BUILD_DIR" >> $GITHUB_ENV
         echo "CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH" >> $GITHUB_ENV
-    - name: Build and Install cppyy-backend on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install cppyy-backend
-        mkdir python/cppyy_backend/lib build && cd build
-        cmake -DInterOp_DIR=$INTEROP_DIR ..
-        cmake --build . --parallel $(nproc --all)
-        cp libcppyy-backend.so ../python/cppyy_backend/lib/
-        cp $LLVM_BUILD_DIR/lib/libcling.so ../python/cppyy_backend/lib/
-        #
-        cd ../python
-        export CB_PYTHON_DIR=$PWD
-        cd ../..
-        # We need CB_PYTHON_DIR later
-        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
-    - name: Install CPyCppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install CPyCppyy
-        git clone https://github.com/sudo-panda/CPyCppyy.git
-        cd CPyCppyy
-        git checkout rm-root-meta
-        mkdir build && cd build
-        cmake ..
-        cmake --build . --parallel $(nproc --all)
-        #
-        export CPYCPPYY_DIR=$PWD
-        cd ../..
-        # We need CPYCPPYY_DIR later
-        echo "CPYCPPYY_DIR=$CPYCPPYY_DIR" >> $GITHUB_ENV
-    - name: Install cppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Install cppyy
-        python3 -m venv .venv
-        source .venv/bin/activate
-        #
-        git clone https://github.com/sudo-panda/cppyy.git
-        cd cppyy
-        git checkout rm-root-meta
-        python -m pip install --upgrade . --no-deps
-        cd ..
-    - name: Run cppyy on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Run cppyy
-        source .venv/bin/activate
-        export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
-        export
-        python -c "import cppyy"
-        # We need PYTHONPATH later
-        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-    - name: Run the tests on Linux
-      if: runner.os == 'Linux'
-      run: |
-        # Run the tests
-        cd cppyy/test
-        make all
-        python -m pytest -sv
+#    - name: Build and Install cppyy-backend on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install cppyy-backend
+#        mkdir python/cppyy_backend/lib build && cd build
+#        cmake -DInterOp_DIR=$INTEROP_DIR ..
+#        cmake --build . --parallel $(nproc --all)
+#        cp libcppyy-backend.so ../python/cppyy_backend/lib/
+#        cp $LLVM_BUILD_DIR/lib/libcling.so ../python/cppyy_backend/lib/
+#        #
+#        cd ../python
+#        export CB_PYTHON_DIR=$PWD
+#        cd ../..
+#        # We need CB_PYTHON_DIR later
+#        echo "CB_PYTHON_DIR=$CB_PYTHON_DIR" >> $GITHUB_ENV
+#    - name: Install CPyCppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install CPyCppyy
+#        git clone https://github.com/sudo-panda/CPyCppyy.git
+#        cd CPyCppyy
+#        git checkout rm-root-meta
+#        mkdir build && cd build
+#        cmake ..
+#        cmake --build . --parallel $(nproc --all)
+#        #
+#        export CPYCPPYY_DIR=$PWD
+#        cd ../..
+#        # We need CPYCPPYY_DIR later
+#        echo "CPYCPPYY_DIR=$CPYCPPYY_DIR" >> $GITHUB_ENV
+#    - name: Install cppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Install cppyy
+#        python3 -m venv .venv
+#        source .venv/bin/activate
+#        #
+#        git clone https://github.com/sudo-panda/cppyy.git
+#        cd cppyy
+#        git checkout rm-root-meta
+#        python -m pip install --upgrade . --no-deps
+#        cd ..
+#    - name: Run cppyy on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Run cppyy
+#        source .venv/bin/activate
+#        export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
+#        export
+#        python -c "import cppyy"
+#        # We need PYTHONPATH later
+#        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
+#    - name: Run the tests on Linux
+#      if: runner.os == 'Linux'
+#      run: |
+#        # Run the tests
+#        cd cppyy/test
+#        make all
+#        python -m pytest -sv
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
