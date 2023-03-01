@@ -197,7 +197,20 @@ jobs:
         cd cppyy/test
         make all || true
         python -m pip install pytest
-        python -m pytest -sv
+        python -m pytest --setup-plan | grep -o -P '(?<=test\/).*(?=\ \(fixtures)' | \
+          while read line ; do
+            NO_OF_TESTS=$((NO_OF_TESTS+1))
+            python -m pytest -s $line >> test.log 2>&1
+            if [[ $? -eq 0 ]]; then
+               PASSED=$((PASSED+1))
+               echo "$line PASSED"
+            else
+               echo "$line FAILED"
+            fi
+         done
+        echo ::group::Test Logs
+        echo test.log
+        echo ::endgroup::
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
