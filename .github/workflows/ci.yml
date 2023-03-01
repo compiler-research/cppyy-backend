@@ -181,6 +181,7 @@ jobs:
         # Run cppyy
         source .venv/bin/activate
         export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
+        export
         python -c "import cppyy"
         # We need PYTHONPATH later
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
