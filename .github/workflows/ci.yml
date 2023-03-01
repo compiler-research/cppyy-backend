@@ -130,8 +130,9 @@ jobs:
         #cmake --build . --target check-interop --parallel $(nproc --all)
         cmake --build . --target install --parallel $(nproc --all)
         cd ../..
-        # We need INTEROP_DIR later
+        # We need INTEROP_DIR and LLVM_BUILD_DIR later
         echo "INTEROP_DIR=$INTEROP_DIR" >> $GITHUB_ENV
+        echo "LLVM_BUILD_DIR=$LLVM_BUILD_DIR" >> $GITHUB_ENV
     - name: Build and Install cppyy-backend on Linux
       if: runner.os == 'Linux'
       run: |
