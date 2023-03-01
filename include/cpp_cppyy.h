@@ -356,7 +356,8 @@ namespace Cppyy {
     TCppIndex_t GetEnumDataValue(TCppScope_t scope);
 
     RPY_EXPORTED
-    TCppScope_t InstantiateTemplateClass(const std::string& templ_name);
+    TCppScope_t InstantiateTemplateClass(
+        TCppScope_t tmpl, TCppType_t* types, size_t types_size);
 
     RPY_EXPORTED
     void        DumpScope(TCppScope_t scope);
