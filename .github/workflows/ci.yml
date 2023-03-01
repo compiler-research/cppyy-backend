@@ -186,7 +186,6 @@ jobs:
         # Run cppyy
         source .venv/bin/activate
         export PYTHONPATH=$PYTHONPATH:$CPYCPPYY_DIR:$CB_PYTHON_DIR
-        export
         python -c "import cppyy"
         # We need PYTHONPATH later
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
@@ -194,9 +193,9 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         # Run the tests
+        source .venv/bin/activate
         cd cppyy/test
         make all || true
-
         python -m pip install pytest
         python -m pytest -sv
     - name: Setup tmate session
