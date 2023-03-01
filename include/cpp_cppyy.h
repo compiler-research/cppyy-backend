@@ -101,6 +101,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t GetScopeFromType(TCppType_t type);
     RPY_EXPORTED
+    TCppType_t  GetTypeFromScope(TCppScope_t klass);
+    RPY_EXPORTED
     TCppScope_t GetGlobalScope();
     RPY_EXPORTED
     TCppType_t  GetActualClass(TCppType_t klass, TCppObject_t obj) { return 0; }

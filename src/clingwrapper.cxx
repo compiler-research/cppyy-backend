@@ -493,6 +493,11 @@ Cppyy::TCppScope_t Cppyy::GetScopeFromType(TCppType_t type)
     return InterOp::GetScopeFromType(type);
 }
 
+Cppyy::TCppType_t Cppyy::GetTypeFromScope(TCppScope_t klass)
+{
+    return InterOp::GetTypeFromScope(klass);
+}
+
 Cppyy::TCppScope_t Cppyy::GetGlobalScope()
 {
     return InterOp::GetGlobalScope(getSema());
