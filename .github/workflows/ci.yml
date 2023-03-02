@@ -117,7 +117,7 @@ jobs:
         #fi
     - name: Save Cache LLVM/Clang runtime build directory
       uses: actions/cache/save@v3
-      if: always()
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       with:
         path: |
           llvm-project/
