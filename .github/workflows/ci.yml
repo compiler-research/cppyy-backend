@@ -164,10 +164,12 @@ jobs:
     - name: Install CPyCppyy on Linux
       if: runner.os == 'Linux'
       run: |
+        # Setup virtual environment
+        python3 -m venv .venv
+        source .venv/bin/activate
         # Install CPyCppyy
-        git clone https://github.com/sudo-panda/CPyCppyy.git
+        git clone https://github.com/compiler-research/CPyCppyy.git
         cd CPyCppyy
-        git checkout rm-root-meta
         mkdir build && cd build
         cmake ..
         cmake --build . --parallel $(nproc --all)
@@ -179,13 +181,11 @@ jobs:
     - name: Install cppyy on Linux
       if: runner.os == 'Linux'
       run: |
-        # Install cppyy
-        python3 -m venv .venv
+        # source virtual environment
         source .venv/bin/activate
-        #
-        git clone https://github.com/sudo-panda/cppyy.git
+        # Install cppyy
+        git clone https://github.com/compiler-research/cppyy.git
         cd cppyy
-        git checkout rm-root-meta
         python -m pip install --upgrade . --no-deps
         cd ..
     - name: Run cppyy on Linux
@@ -198,6 +198,7 @@ jobs:
         # We need PYTHONPATH later
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
     - name: Run the tests on Linux
+      continue-on-error: true
       if: runner.os == 'Linux'
       run: |
         # Run the tests
@@ -206,22 +207,33 @@ jobs:
         make all || true
         python -m pip install --upgrade pip
         python -m pip install pytest
-        python -m pytest --setup-plan | grep -o -P '(?<=test\/).*(?=\ \(fixtures)' | \
-          while read line ; do
-            NO_OF_TESTS=$((NO_OF_TESTS+1))
-            python -m pytest -s $line >> test.log 2>&1
-            if [[ $? -eq 0 ]]; then
-               PASSED=$((PASSED+1))
-               echo "$line PASSED"
-            else
-               echo "$line FAILED"
-            fi
-         done
-        echo ::group::Test Logs
-        echo test.log
+        export PASSED=0
+        export NO_OF_TESTS=0
+        export SETUP_PLAN=$(python -m pytest --setup-plan | grep -o -P '(?<=test\/).*?(?=\ \(fixtures)')
+        echo ::group::Test Status
+        set +e
+        for test in ${SETUP_PLAN} ; do
+          NO_OF_TESTS=$((NO_OF_TESTS+1))
+          (
+            python -m pytest -s $test >> test.log 2>&1
+          )
+          if [[ $? -eq 0 ]]; then
+            PASSED=$((PASSED+1))
+            echo "$test PASSED"
+          else
+            echo "$test FAILED"
+          fi
+        done
+        set -e
         echo ::endgroup::
+        echo "TEST SUMMARY: $PASSED out of $NO_OF_TESTS tests passed"
+        echo ::group::Test Logs
+        cat test.log
+        echo ::endgroup::
+        if [[ $PASSED -ne $NO_OF_TESTS ]]; then
+          exit 1
+        fi
     - name: Setup tmate session
       if: ${{ failure() }}
       uses: mxschmitt/action-tmate@v3
       # When debugging increase to a suitable value!
-      timeout-minutes: ${{ github.event.pull_request && 1 || 20 }}
