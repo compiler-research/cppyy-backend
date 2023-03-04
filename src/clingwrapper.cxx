@@ -1278,7 +1278,7 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
 
 std::vector<Cppyy::TCppMethod_t> Cppyy::GetClassMethods(TCppScope_t scope)
 {
-    return InterOp::GetClassMethods(scope);
+    return InterOp::GetClassMethods(getSema(), scope);
 }
 
 std::vector<Cppyy::TCppScope_t> Cppyy::GetMethodsFromName(
