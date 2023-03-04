@@ -882,6 +882,12 @@ bool Cppyy::IsNamespace(TCppScope_t scope)
     return InterOp::IsNamespace(scope) || 
         InterOp::GetGlobalScope(getSema()) == scope;
 }
+
+bool Cppyy::IsClass(TCppScope_t scope)
+{
+    // Test if this scope represents a namespace.
+    return InterOp::IsClass(scope);
+}
 //
 bool Cppyy::IsAbstract(TCppScope_t scope)
 {

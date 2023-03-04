@@ -183,6 +183,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsNamespace(TCppScope_t scope);
     RPY_EXPORTED
+    bool IsClass(TCppScope_t scope);
+    RPY_EXPORTED
     bool IsTemplate(TCppScope_t scope);
     RPY_EXPORTED
     bool IsTemplateInstantiation(TCppScope_t scope);
