@@ -295,9 +295,11 @@ char* cppstring_to_cstring(const std::string& cppstr)
 //
 //
 // // direct interpreter access -------------------------------------------------
+// Returns false on failure and true on success
 bool Cppyy::Compile(const std::string& code, bool silent)
 {
-    return InterOp::Declare(getInterp(), code.c_str(), silent);
+    // Declare returns an enum which equals 0 on success
+    return !InterOp::Declare(getInterp(), code.c_str(), silent);
 }
 
 std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
