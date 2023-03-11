@@ -1156,7 +1156,7 @@ Cppyy::TCppScope_t Cppyy::GetBaseScope(TCppScope_t klass, TCppIndex_t ibase)
 
 bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
 {
-    return InterOp::IsSubclass(derived, base);
+    return InterOp::IsSubclass(getSema(), derived, base);
 }
 
 // bool Cppyy::IsSmartPtr(TCppType_t klass)
@@ -1210,7 +1210,7 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
     intptr_t offset = -1;
-    if (InterOp::IsSubclass(derived, base)) {
+    if (Cppyy::IsSubclass(derived, base)) {
         offset = InterOp::GetBaseClassOffset(getSema(), derived, base);
 #ifdef PRINT_DEBUG
         printf("~~~~~~~~~~~~~~~~~ BCO: %ld", offset);
