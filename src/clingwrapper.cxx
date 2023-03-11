@@ -1380,7 +1380,7 @@ std::string Cppyy::GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iar
 
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
 {
-    return InterOp::GetFunctionSignature(method, show_formal_args, max_args);
+    return InterOp::GetFunctionSignature(method);
 }
 
 std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args)
