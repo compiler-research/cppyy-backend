@@ -1845,20 +1845,10 @@ bool Cppyy::IsConstVar(TCppScope_t var)
 //     return false;
 // }
 
-// int Cppyy::GetDimensionSize(TCppScope_t scope, TCppIndex_t idata, int dimension)
-// {
-//     if (scope == GLOBAL_HANDLE) {
-//         TGlobal* gbl = g_globalvars[idata];
-//         return gbl->GetMaxIndex(dimension);
-//     }
-//     TClassRef& cr = type_from_handle(scope);
-//     if (cr.GetClass()) {
-//         TDataMember* m = (TDataMember*)cr->GetListOfDataMembers()->At((int)idata);
-//         return m->GetMaxIndex(dimension);
-//     }
-//     return -1;
-// }
-
+std::vector<long int>  Cppyy::GetDimensions(TCppType_t type)
+{
+    return InterOp::GetDimensions(type);
+}
 
 // enum properties -----------------------------------------------------------
 std::vector<Cppyy::TCppScope_t> Cppyy::GetEnumConstants(TCppScope_t scope)
