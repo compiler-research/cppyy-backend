@@ -344,9 +344,9 @@ namespace Cppyy {
     bool IsConstVar(TCppScope_t var);
 //     RPY_EXPORTED
 //     bool IsEnumData(TCppScope_t scope, TCppIndex_t idata);
-//     RPY_EXPORTED
-//     int  GetDimensionSize(TCppScope_t scope, TCppIndex_t idata, int dimension);
-//
+    RPY_EXPORTED
+    std::vector<long int> GetDimensions(TCppType_t type);
+
 // // enum properties -----------------------------------------------------------
     // RPY_EXPORTED
     // TCppEnum_t  GetEnum(TCppScope_t scope, const std::string& enum_name) { return 0; }
