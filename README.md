@@ -128,7 +128,7 @@ Each time you want to run cppyy you need to:
     refer to.
 3. Add paths to `CPLUS_INCLUDE_PATH`
     ```
-    export CPLUS_INCLUDE_PATH=$LLVM_DIR/inst/include:$LLVM_DIR/inst/lib/clang/14.0.0/include
+    export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:${LLVM_DIR}/llvm/include:${LLVM_DIR}/clang/include:${LLVM_DIR}/build/include:${LLVM_DIR}/build/tools/clang/include"
     ```
 
 Now you can `import cppyy` in `python`
