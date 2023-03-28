@@ -6,14 +6,14 @@ set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 
 add_library(cppyy-backend SHARED
-    src/clingwrapper.cxx
+    clingwrapper/src/clingwrapper.cxx
 )
 
 # set_target_properties(cppyy-backend PROPERTIES VERSION ${PROJECT_VERSION})
 
 # set_target_properties(cppyy-backend PROPERTIES PUBLIC_HEADER include/cpp_cppyy.h)
 
-target_include_directories(cppyy-backend PRIVATE include)
+target_include_directories(cppyy-backend PRIVATE clingwrapper/src)
 
 
 add_library(libInterOp IMPORTED STATIC GLOBAL)
@@ -67,7 +67,7 @@ else()
     add_dependencies(libInterOp InterOp)
 endif()
 
-set_source_files_properties(src/clingwrapper.cxx
+set_source_files_properties(clingwrapper/src/clingwrapper.cxx
   PROPERTIES COMPILE_DEFINITIONS "INTEROP_DIR=\"${_interop_install_dir}\"")
 
 set_property(TARGET libInterOp PROPERTY IMPORTED_LOCATION ${_interop_install_dir}/lib/${_interop_static_archive_name})
