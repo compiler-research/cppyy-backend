@@ -206,6 +206,7 @@ public:
 
         // load frequently used headers
         const char* code =
+               "#include <cmath>\n" // for the missing std::sqrt
                "#include <iostream>\n"
                "#include <string>\n"
             //    "#include <DllImport.h>\n"     // defines R__EXTERN
