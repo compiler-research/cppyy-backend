@@ -459,7 +459,7 @@ Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
 std::string Cppyy::ResolveEnum(TCppScope_t handle)
 {
     return InterOp::GetTypeAsString(
-        InterOp::GetEnumIntegerType(handle));
+        InterOp::GetIntegerTypeFromEnumScope(handle));
 }
 
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
