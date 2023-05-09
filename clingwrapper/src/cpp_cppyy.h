@@ -163,7 +163,7 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppObject_t  CallConstructor(TCppMethod_t method, TCppScope_t klass, size_t nargs, void* args);
     RPY_EXPORTED
-    void          CallDestructor(TCppType_t type, TCppObject_t self) { return; }
+    void          CallDestructor(TCppScope_t type, TCppObject_t self);
     RPY_EXPORTED
     TCppObject_t  CallO(TCppMethod_t method, TCppObject_t self, size_t nargs, void* args, TCppType_t result_type);
 

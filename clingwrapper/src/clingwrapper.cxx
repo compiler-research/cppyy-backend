@@ -853,11 +853,10 @@ Cppyy::TCppObject_t Cppyy::CallConstructor(
     return (TCppObject_t)0;
 }
 
-// void Cppyy::CallDestructor(TCppType_t type, TCppObject_t self)
-// {
-//     TClassRef& cr = type_from_handle(type);
-//     cr->Destructor((void*)self, true);
-// }
+void Cppyy::CallDestructor(TCppScope_t scope, TCppObject_t self)
+{
+    InterOp::Destruct(getInterp(), self, scope, /*withFree=*/false);
+}
 
 Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
     TCppObject_t self, size_t nargs, void* args, TCppType_t result_type)
