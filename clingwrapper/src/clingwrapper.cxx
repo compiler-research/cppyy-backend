@@ -719,62 +719,28 @@ bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* se
     bool is_direct = nargs & DIRECT_CALL;
     nargs = CALL_NARGS(nargs);
 
-    // CallWrapper* wrap = (CallWrapper*)method;
-    const InterOp::CallFuncWrapper_t& faceptr = 
-        InterOp::GetFunctionCallWrapper(getInterp(), method);
     // if (!is_ready(wrap, is_direct))
     //     return false;        // happens with compilation error
 
-    nargs = CALL_NARGS(nargs);
-    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kGeneric) {
-    bool runRelease = false;
-    const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
-    if (nargs <= SMALL_ARGS_N) {
-        void* smallbuf[SMALL_ARGS_N];
-        if (nargs) runRelease = copy_args(args, nargs, smallbuf);
-        // CLING_CATCH_UNCAUGHT_
-#ifdef PRINT_DEBUG
-        printf("start execution\n");
-#endif
-        fgen(self, (int)nargs, smallbuf, result);
-#ifdef PRINT_DEBUG
-        printf("executed\n");
-#endif
-        // _CLING_CATCH_UNCAUGHT
-    } else {
-        std::vector<void*> buf(nargs);
-        runRelease = copy_args(args, nargs, buf.data());
-        // CLING_CATCH_UNCAUGHT_
-        fgen(self, (int)nargs, buf.data(), result);
-        // _CLING_CATCH_UNCAUGHT
+    if (InterOp::JitCall JC = InterOp::MakeFunctionCallable(getInterp(), method)) {
+        bool runRelease = false;
+        //const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
+        if (nargs <= SMALL_ARGS_N) {
+            void* smallbuf[SMALL_ARGS_N];
+            if (nargs) runRelease = copy_args(args, nargs, smallbuf);
+            // CLING_CATCH_UNCAUGHT_
+            JC.Invoke(result, {smallbuf, nargs}, self);
+            // _CLING_CATCH_UNCAUGHT
+        } else {
+            std::vector<void*> buf(nargs);
+            runRelease = copy_args(args, nargs, buf.data());
+            // CLING_CATCH_UNCAUGHT_
+            JC.Invoke(result, {buf.data(), nargs}, self);
+            // _CLING_CATCH_UNCAUGHT
+        }
+        if (runRelease) release_args(args, nargs);
+        return true;
     }
-    if (runRelease) release_args(args, nargs);
-    return true;
-    // }
-
-    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kCtor) {
-    //     bool runRelease = false;
-    //     if (nargs <= SMALL_ARGS_N) {
-    //         void* smallbuf[SMALL_ARGS_N];
-    //         if (nargs) runRelease = copy_args(args, nargs, (void**)smallbuf);
-    //         // CLING_CATCH_UNCAUGHT_
-    //         faceptr.fCtor((void**)smallbuf, result, (unsigned long)nargs);
-    //         // _CLING_CATCH_UNCAUGHT
-    //     } else {
-    //         std::vector<void*> buf(nargs);
-    //         runRelease = copy_args(args, nargs, buf.data());
-    //         // CLING_CATCH_UNCAUGHT_
-    //         faceptr.fCtor(buf.data(), result, (unsigned long)nargs);
-    //         // _CLING_CATCH_UNCAUGHT
-    //     }
-    //     if (runRelease) release_args(args, nargs);
-    //     return true;
-    // }
-
-    // if (faceptr.fKind == InterOp::CallFuncWrapper_t::kDtor) {
-    //     std::cerr << " DESTRUCTOR NOT IMPLEMENTED YET! " << std::endl;
-    //     return false;
-    // }
 
     return false;
 }
@@ -845,12 +811,11 @@ char* Cppyy::CallS(
 }
 
 Cppyy::TCppObject_t Cppyy::CallConstructor(
-    TCppMethod_t method, TCppScope_t /* klass */, size_t nargs, void* args)
+    TCppMethod_t method, TCppScope_t klass, size_t nargs, void* args)
 {
     void* obj = nullptr;
-    if (WrapperCall(method, nargs, args, nullptr, &obj))
-        return (TCppObject_t)obj;
-    return (TCppObject_t)0;
+    WrapperCall(method, nargs, args, nullptr, &obj);
+    return (TCppObject_t)obj;
 }
 
 void Cppyy::CallDestructor(TCppScope_t scope, TCppObject_t self)
