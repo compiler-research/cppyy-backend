@@ -1099,7 +1099,7 @@ std::string Cppyy::GetScopedFinalName(TCppType_t klass)
 
 bool Cppyy::HasVirtualDestructor(TCppScope_t scope)
 {
-    TCppMethod_t func = InterOp::GetDestructor(scope);
+    TCppMethod_t func = InterOp::GetDestructor(getSema(),scope);
     return InterOp::IsVirtualMethod(func);
 }
 
