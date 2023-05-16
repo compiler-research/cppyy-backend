@@ -304,6 +304,8 @@ namespace Cppyy {
 
 // method properties ---------------------------------------------------------
     RPY_EXPORTED
+    bool IsDeletedMethod(TCppMethod_t method);
+    RPY_EXPORTED
     bool IsPublicMethod(TCppMethod_t method);
     RPY_EXPORTED
     bool IsProtectedMethod(TCppMethod_t method);

@@ -1548,6 +1548,11 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 // }
 //
 // // method properties ---------------------------------------------------------
+bool Cppyy::IsDeletedMethod(TCppMethod_t method)
+{
+    return InterOp::IsFunctionDeleted(method);
+}
+
 bool Cppyy::IsPublicMethod(TCppMethod_t method)
 {
     return InterOp::IsPublicMethod(method);
