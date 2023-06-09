@@ -311,7 +311,7 @@ bool Cppyy::Compile(const std::string& code, bool silent)
 std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 {
     if (klass && obj && !InterOp::IsNamespace((TCppScope_t)klass))
-        return InterOp::ObjToString(InterOp::GetCompleteName(klass).c_str(),
+        return InterOp::ObjToString(InterOp::GetQualifiedCompleteName(klass).c_str(),
                                     (void*)obj);
     return "";
 }
