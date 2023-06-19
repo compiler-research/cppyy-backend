@@ -547,6 +547,11 @@ bool Cppyy::IsTemplateInstantiation(TCppScope_t handle)
     return InterOp::IsTemplateSpecialization(handle);
 }
 
+bool Cppyy::IsTypedefed(TCppScope_t handle)
+{
+    return InterOp::IsTypedefed(handle);
+}
+
 // namespace {
 //     class AutoCastRTTI {
 //     public:
