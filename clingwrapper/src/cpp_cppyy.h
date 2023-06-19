@@ -110,7 +110,9 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t  GetActualClass(TCppType_t klass, TCppObject_t obj) { assert(0 && "GetActualClass"); return 0; }
     RPY_EXPORTED
-    size_t      SizeOf(TCppType_t klass);
+    size_t      SizeOf(TCppScope_t klass);
+    RPY_EXPORTED
+    size_t      SizeOfType(TCppType_t type);
     RPY_EXPORTED
     size_t      SizeOf(const std::string &type) { assert(0 && "SizeOf"); return 0; }
 

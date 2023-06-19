@@ -612,9 +612,14 @@ bool Cppyy::IsTemplateInstantiation(TCppScope_t handle)
 //     return klass;
 // }
 
-size_t Cppyy::SizeOf(TCppType_t klass)
+size_t Cppyy::SizeOf(TCppScope_t klass)
 {
     return InterOp::SizeOf(klass);
+}
+
+size_t Cppyy::SizeOfType(TCppType_t klass)
+{
+    return InterOp::GetSizeOfType(klass);
 }
 
 // size_t Cppyy::SizeOf(const std::string& type_name)
