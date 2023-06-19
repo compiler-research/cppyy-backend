@@ -91,6 +91,8 @@ namespace Cppyy {
     TCppScope_t GetScope(const std::string& scope_name,
                          TCppScope_t parent_scope = 0);
     RPY_EXPORTED
+    TCppScope_t GetUnderlyingScope(TCppScope_t scope);
+    RPY_EXPORTED
     TCppScope_t GetFullScope(const std::string& scope_name);
     RPY_EXPORTED
     TCppScope_t GetTypeScope(TCppScope_t klass);

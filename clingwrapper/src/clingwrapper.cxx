@@ -483,6 +483,11 @@ std::string Cppyy::ResolveEnum(TCppScope_t handle)
         InterOp::GetIntegerTypeFromEnumScope(handle));
 }
 
+Cppyy::TCppScope_t Cppyy::GetUnderlyingScope(TCppScope_t scope)
+{
+    return InterOp::GetUnderlyingScope(scope);
+}
+
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
                                    TCppScope_t parent_scope)
 {
