@@ -5,6 +5,7 @@ builddir/
 build/
 .cling/
 .clingwrapper/
+python/cppyy_backend/include
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
