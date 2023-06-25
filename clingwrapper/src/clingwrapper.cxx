@@ -195,6 +195,7 @@ public:
         // load frequently used headers
         const char* code =
                "#include <iostream>\n"
+               "#include <string.h>\n" // for strcpy
                "#include <string>\n"
             //    "#include <DllImport.h>\n"     // defines R__EXTERN
                "#include <vector>\n"
