@@ -438,6 +438,32 @@ bool Cppyy::IsClassType(TCppType_t type) {
     return InterOp::IsRecordType(type);
 }
 
+// returns true if no new type was added.
+bool Cppyy::AppendTypesSlow(const std::string &name,
+                            std::vector<InterOp::TemplateArgInfo>& types) {
+  // Try going via Cppyy::GetType first.
+  if (Cppyy::TCppType_t type = GetType(name, /*enable_slow_lookup=*/true)) {
+    types.push_back(type);
+    return false;
+  }
+  // Else, we might have an entire expression such as int, double.
+  static unsigned long long struct_count = 0;
+  std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
+  if (!struct_count)
+    InterOp::Declare(code.c_str()); // initialize the trampoline
+
+  std::string var = "__s" + std::to_string(struct_count++);
+  // FIXME: We cannot use silent because it erases our error code from Declare!
+  if (!InterOp::Declare(("__Cppyy_AppendTypesSlow<" + name + "> " + var +";\n").c_str(), /*silent=*/false)) {
+    TCppType_t varN = InterOp::GetVariableType(InterOp::GetNamed(var.c_str()));
+    TCppScope_t instance_class = InterOp::GetScopeFromType(varN);
+    size_t oldSize = types.size();
+    InterOp::GetClassTemplateInstantiationArgs(instance_class, types);
+    return oldSize == types.size();
+  }
+  return true;
+}
+
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_lookup /* = false */) {
     static unsigned long long var_count = 0;
 
@@ -451,13 +477,17 @@ Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_looku
         return nullptr;
     }
 
+    // Here we might need to deal with integral types such as 3.14.
+
     std::string id = "__Cppyy_GetType_" + std::to_string(var_count++);
+    std::string using_clause = "using " + id + " = __typeof__(" + name + ");\n";
 
-    InterOp::Declare(("using " + id + " = __typeof__(" + name + ");\n").c_str());
-
-    TCppScope_t lookup = InterOp::GetNamed(id, 0);
-    TCppType_t lookup_ty = InterOp::GetTypeFromScope(lookup);
-    return InterOp::GetCanonicalType(lookup_ty);
+    if (!InterOp::Declare(using_clause.c_str(), /*silent=*/false)) {
+      TCppScope_t lookup = InterOp::GetNamed(id, 0);
+      TCppType_t lookup_ty = InterOp::GetTypeFromScope(lookup);
+      return InterOp::GetCanonicalType(lookup_ty);
+    }
+    return nullptr;
 }
 
 
