@@ -151,14 +151,28 @@ static struct Signalmap_t {
 //     }
 // };
 
+static inline
+void push_tokens_from_string(char *s, std::vector <const char*> &tokens) {
+    char *token = strtok(s, " ");
+
+    while (token) {
+        tokens.push_back(token);
+        token = strtok(NULL, " ");
+    }
+}
+
 class ApplicationStarter {
   InterOp::TInterp_t Interp;
 public:
     ApplicationStarter() {
         // Create the interpreter and initilize the pointer
-        // FIXME: We should make these flags available via the env variable
-        // INTEROP_EXTRA_INTERPRETER_ARGS
-         Interp = InterOp::CreateInterpreter({"-std=c++17", "-march=native"});
+
+        std::vector <const char *> InterpArgs({"-std=c++17", "-march=native"});
+        char *InterpArgString = getenv("INTEROP_EXTRA_INTERPRETER_ARGS");
+        if (InterpArgString)
+            push_tokens_from_string(InterpArgString, InterpArgs);
+
+        Interp = InterOp::CreateInterpreter(InterpArgs);
 
         // fill out the builtins
         std::set<std::string> bi{g_builtins};
