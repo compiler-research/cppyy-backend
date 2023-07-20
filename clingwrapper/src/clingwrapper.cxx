@@ -165,14 +165,18 @@ class ApplicationStarter {
   InterOp::TInterp_t Interp;
 public:
     ApplicationStarter() {
-        // Create the interpreter and initilize the pointer
-
-        std::vector <const char *> InterpArgs({"-std=c++17", "-march=native"});
-        char *InterpArgString = getenv("INTEROP_EXTRA_INTERPRETER_ARGS");
-        if (InterpArgString)
-            push_tokens_from_string(InterpArgString, InterpArgs);
-
-        Interp = InterOp::CreateInterpreter(InterpArgs);
+        // Check if somebody already loaded CppInterOp and created an
+        // interpreter for us.
+        if (auto * existingInterp = InterOp::GetInterpreter()) {
+            Interp = existingInterp;
+        }
+        else {
+            std::vector <const char *> InterpArgs({"-std=c++17", "-march=native"});
+            char *InterpArgString = getenv("INTEROP_EXTRA_INTERPRETER_ARGS");
+            if (InterpArgString)
+               push_tokens_from_string(InterpArgString, InterpArgs);
+            Interp = InterOp::CreateInterpreter({"-std=c++17", "-march=native"});
+        }
 
         // fill out the builtins
         std::set<std::string> bi{g_builtins};

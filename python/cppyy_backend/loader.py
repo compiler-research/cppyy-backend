@@ -27,6 +27,18 @@ soext2 = sysconfig.get_config_var("EXT_SUFFIX")
 if not soext2:
     soext2 = sysconfig.get_config_var("SO")
 
+# Load the dl library (on Unix-like systems)
+dl = ctypes.CDLL(None)
+
+# Function to check if a shared object is already loaded
+def is_shared_object_loaded(lib_path):
+    if os.path.exists(lib_path):
+        lib_handle = dl.dlopen(lib_path, ctypes.c_int(4))  # Equivalent to dlopen with RTLD_NOLOAD
+        if lib_handle:
+            dl.dlclose(lib_handle)
+            return True  # Library is already loaded
+    return False  # Library is not loaded or does not exist
+
 
 def _load_helper(bkname):
     errors = set()
@@ -48,8 +60,10 @@ def _load_helper(bkname):
             for loc in ['lib', 'bin']:
                 fpath = os.path.join(pkgpath, loc, dep+soext)
                 if os.path.exists(fpath):
+                    # Do not load libclangInterOp if it was already loaded.
+                    if is_shared_object_loaded(os.path.join(pkgpath, 'lib', bkname)):
+                        continue
                     ldtype = ctypes.RTLD_GLOBAL
-                    #  if dep == 'libclangInterOp': ldtype = ctypes.RTLD_LOCAL
                     ctypes.CDLL(fpath, ldtype)
                     break
         return ctypes.CDLL(os.path.join(pkgpath, 'lib', bkname), ctypes.RTLD_GLOBAL), errors
