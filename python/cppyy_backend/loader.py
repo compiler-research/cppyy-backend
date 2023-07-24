@@ -32,13 +32,12 @@ dl = ctypes.CDLL(None)
 
 # Function to check if a shared object is already loaded
 def is_shared_object_loaded(lib_path):
-    if os.path.exists(lib_path):
-        lib_handle = dl.dlopen(lib_path, ctypes.c_int(4))  # Equivalent to dlopen with RTLD_NOLOAD
-        if lib_handle:
-            dl.dlclose(lib_handle)
-            return True  # Library is already loaded
-    return False  # Library is not loaded or does not exist
-
+    try:
+        # Check if somebody else has dlopen-ed libclangCppInterOp.
+        dl.CreateInterpreter
+        return True
+    except:
+        return False # Library was not loaded.
 
 def _load_helper(bkname):
     errors = set()
@@ -58,10 +57,10 @@ def _load_helper(bkname):
             pkgpath = os.path.dirname(pkgpath)
         for dep in ['libclangInterOp']:
             for loc in ['lib', 'bin']:
-                fpath = os.path.join(pkgpath, loc, dep+soext)
+                fpath = os.path.realpath(os.path.join(pkgpath, loc, dep+soext))
                 if os.path.exists(fpath):
                     # Do not load libclangInterOp if it was already loaded.
-                    if is_shared_object_loaded(os.path.join(pkgpath, 'lib', bkname)):
+                    if is_shared_object_loaded(fpath):
                         continue
                     ldtype = ctypes.RTLD_GLOBAL
                     ctypes.CDLL(fpath, ldtype)
