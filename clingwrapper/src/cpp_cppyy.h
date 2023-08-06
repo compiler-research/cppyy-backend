@@ -14,7 +14,7 @@
 
 // #include "TCling.h"
 
-#include "clang/Interpreter/InterOp.h"
+#include "clang/Interpreter/CppInterOp.h"
 
 // some more types; assumes Cppyy.h follows Python.h
 #ifndef PY_LONG_LONG
@@ -58,12 +58,12 @@ static inline size_t CALL_NARGS(size_t nargs) {
 //
 
 namespace Cppyy {
-    typedef InterOp::TCppScope_t    TCppScope_t;
-    typedef InterOp::TCppType_t     TCppType_t;
-    typedef InterOp::TCppScope_t    TCppEnum_t;
-    typedef InterOp::TCppScope_t    TCppObject_t;
-    typedef InterOp::TCppFunction_t TCppMethod_t;
-    typedef InterOp::TCppIndex_t    TCppIndex_t;
+    typedef Cpp::TCppScope_t    TCppScope_t;
+    typedef Cpp::TCppType_t     TCppType_t;
+    typedef Cpp::TCppScope_t    TCppEnum_t;
+    typedef Cpp::TCppScope_t    TCppObject_t;
+    typedef Cpp::TCppFunction_t TCppMethod_t;
+    typedef Cpp::TCppIndex_t    TCppIndex_t;
     typedef intptr_t                TCppFuncAddr_t;
 
 // // direct interpreter access -------------------------------------------------
@@ -87,7 +87,7 @@ namespace Cppyy {
     TCppType_t GetType(const std::string &name, bool enable_slow_lookup = false);
     RPY_EXPORTED
     bool AppendTypesSlow(const std::string &name,
-                         std::vector<InterOp::TemplateArgInfo>& types);
+                         std::vector<Cpp::TemplateArgInfo>& types);
     RPY_EXPORTED
     TCppType_t GetComplexType(const std::string &element_type);
     RPY_EXPORTED
@@ -379,7 +379,7 @@ namespace Cppyy {
 
     RPY_EXPORTED
     TCppScope_t InstantiateTemplateClass(
-            TCppScope_t tmpl, InterOp::TemplateArgInfo* args, size_t args_size);
+            TCppScope_t tmpl, Cpp::TemplateArgInfo* args, size_t args_size);
 
     RPY_EXPORTED
     void        DumpScope(TCppScope_t scope);

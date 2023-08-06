@@ -17,10 +17,10 @@ add_library(cppyy-backend SHARED
 target_include_directories(cppyy-backend PRIVATE clingwrapper/src)
 
 
-if(DEFINED InterOp_DIR)
-    set(_interop_install_dir ${InterOp_DIR})
+if(DEFINED CppInterOp_DIR)
+    set(_interop_install_dir ${CppInterOp_DIR})
 else()
-    set(_interop_install_dir ${CMAKE_BINARY_DIR}/InterOp/install)
+    set(_interop_install_dir ${CMAKE_BINARY_DIR}/CppInterOp/install)
 
     if(DEFINED USE_CLING)
         list(APPEND _interop_cmake_args "-DUSE_CLING=${USE_CLING}")
@@ -49,19 +49,19 @@ else()
           LOG_OUTPUT_ON_FAILURE ON
         )
 
-    ExternalProject_Add(InterOp 
-        GIT_REPOSITORY https://github.com/compiler-research/InterOp.git
+    ExternalProject_Add(CppInterOp 
+        GIT_REPOSITORY https://github.com/compiler-research/CppInterOp.git
         GIT_TAG main
-        PREFIX "InterOp"
+        PREFIX "CppInterOp"
         CMAKE_ARGS ${_interop_cmake_args}
         BUILD_BYPRODUCTS ${_interop_byproducts}
         ${_interop_cmake_logging_settings}
     )
 
-    add_dependencies(libInterOp InterOp)
+    add_dependencies(libCppInterOp CppInterOp)
 endif()
 
 set_source_files_properties(clingwrapper/src/clingwrapper.cxx
-  PROPERTIES COMPILE_DEFINITIONS "INTEROP_DIR=\"${_interop_install_dir}\"")
+  PROPERTIES COMPILE_DEFINITIONS "CPPINTEROP_DIR=\"${_interop_install_dir}\"")
 
 target_include_directories(cppyy-backend PUBLIC ${_interop_install_dir}/include)
