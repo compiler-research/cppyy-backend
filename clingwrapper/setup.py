@@ -24,8 +24,10 @@ with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 if 'win32' in sys.platform:
     soext = '.dll'
-else:
+elif 'linux' in sys.platform:
     soext = '.so'
+else:
+    soext = '.dylib'
 
 #
 # platform-dependent helpers
