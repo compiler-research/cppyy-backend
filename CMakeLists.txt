@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(cppyy-backend)
 include(ExternalProject)
+include(CMakeSystemSpecificInformation)
 
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
@@ -63,5 +64,9 @@ endif()
 
 set_source_files_properties(clingwrapper/src/clingwrapper.cxx
   PROPERTIES COMPILE_DEFINITIONS "CPPINTEROP_DIR=\"${_interop_install_dir}\"")
+
+# Link to CppInterOp library. Without this can't build on MacOS due to undefined symbols
+target_link_libraries(cppyy-backend ${_interop_install_dir}/lib/libclangCppInterOp${CMAKE_SHARED_LIBRARY_SUFFIX})
+
 
 target_include_directories(cppyy-backend PUBLIC ${_interop_install_dir}/include)

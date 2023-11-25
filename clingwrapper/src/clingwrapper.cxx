@@ -171,11 +171,32 @@ public:
             Interp = existingInterp;
         }
         else {
+#ifdef __arm64__
+#ifdef __APPLE__
+            // If on apple silicon don't use -march=native
+            std::vector<const char *> InterpArgs({"-std=c++17"});
+#else
+            std::vector<const char *> InterpArgs(
+                {"-std=c++17", "-march=native"});
+#endif
+#else
             std::vector <const char *> InterpArgs({"-std=c++17", "-march=native"});
+#endif
             char *InterpArgString = getenv("CPPINTEROP_EXTRA_INTERPRETER_ARGS");
+
             if (InterpArgString)
-               push_tokens_from_string(InterpArgString, InterpArgs);
+              push_tokens_from_string(InterpArgString, InterpArgs);
+
+#ifdef __arm64__
+#ifdef __APPLE__
+            // If on apple silicon don't use -march=native
+            Interp = Cpp::CreateInterpreter({"-std=c++17"});
+#else
             Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"});
+#endif
+#else
+            Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"});
+#endif
         }
 
         // fill out the builtins

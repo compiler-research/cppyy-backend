@@ -19,8 +19,10 @@ import warnings
 
 if 'win32' in sys.platform:
     soext = '.dll'
-else:
+elif 'linux' in sys.platform:
     soext = '.so'
+else:
+    soext = '.dylib'
 
 soabi = sysconfig.get_config_var("SOABI")
 soext2 = sysconfig.get_config_var("EXT_SUFFIX")
