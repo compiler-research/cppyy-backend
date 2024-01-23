@@ -467,14 +467,8 @@ jobs:
           cmake --build . --target clang clang-repl --parallel ${{ env.ncpus }}
         fi
         cd ../../
-        #FIXME: Shouldn't be necessary to copy osx and Ubuntu differently
-        OS=$(uname -s)
-        if [[ "$OS" == "Darwin" ]]; then
-          mkdir ./cppyy-backend/llvm-project/
-          cp -r ./llvm-project/ ./cppyy-backend/llvm-project/
-        else
-          cp ./llvm-project/ ./cppyy-backend/
-        fi
+        mkdir ./cppyy-backend/llvm-project/
+        cp -r ./llvm-project/ ./cppyy-backend/llvm-project/
         echo "Copy llvm-project folder to cppyy-backend for caching"
 
     - name: Build LLVM/Cling on Windows systems if the cache is invalid
@@ -549,7 +543,9 @@ jobs:
           cmake --build . --config Release --target clang clang-repl --parallel ${{ env.ncpus }}
         }
         cd ../../
-        cp -r .\llvm-project\ .\cppyy-backend\
+        mkdir .\cppyy-backend\llvm-project\
+        cp -r .\llvm-project\ .\cppyy-backend\llvm-project\
+        echo "Copy llvm-project folder to cppyy-backend for caching"
 
     - name: Save Cache LLVM/Clang runtime build directory
       uses: actions/cache/save@v3
