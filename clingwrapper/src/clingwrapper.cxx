@@ -1495,9 +1495,16 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
-#ifdef PRINT_DEBUG
-    printf("========== GMT: %s; %s\n", name.c_str(), proto.c_str());
-#endif
+    std::string full_name = InterOp::GetName(scope);
+    full_name += "::" + name;
+    // Check if the instantiation was explicit. That means we already include
+    // `proto` in `name`.
+    if (full_name[full_name.size() - 1] == '>')
+      full_name.insert(full_name.size() - 1, "," + proto);
+    else
+      full_name += '<' + proto + '>';
+    return InterOp::InstantiateTemplateFunctionFromString(full_name.c_str());
+
 // // There is currently no clean way of extracting a templated method out of ROOT/meta
 // // for a variety of reasons, none of them fundamental. The game played below is to
 // // first get any pre-existing functions already managed by ROOT/meta, but if that fails,
