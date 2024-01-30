@@ -1499,10 +1499,12 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     full_name += "::" + name;
     // Check if the instantiation was explicit. That means we already include
     // `proto` in `name`.
-    if (full_name[full_name.size() - 1] == '>')
-      full_name.insert(full_name.size() - 1, "," + proto);
-    else
+    if (full_name[full_name.size() - 1] == '>') {
+      if (!proto.empty())
+        full_name.insert(full_name.size() - 1, "," + proto);
+    } else {
       full_name += '<' + proto + '>';
+    }
     return InterOp::InstantiateTemplateFunctionFromString(full_name.c_str());
 
 // // There is currently no clean way of extracting a templated method out of ROOT/meta
