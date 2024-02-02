@@ -59,8 +59,8 @@ jobs:
             cling: On
             cling-version: '1.0'
             cppyy: On
-          #Commented out until Ubuntu on arm Github runner becomes available 
-          #os key to be replaced once known
+          #Commented out until Ubuntu on arm Github runner becomes 
+          #available os key to be replaced once known
           #- name: ubu22-arm-gcc12-clang-repl-17
           #  os: ubuntu-22.04-arm
           #  compiler: gcc-12
@@ -468,7 +468,8 @@ jobs:
         fi
         cd ../../
         mkdir ./cppyy-backend/llvm-project/
-        cp -r ./llvm-project/ ./cppyy-backend/llvm-project/
+        #FIXME: Avoid copy command by caching based on absolute path
+        cp -r -v ./llvm-project/* ./cppyy-backend/llvm-project/
         echo "Copy llvm-project folder to cppyy-backend for caching"
 
     - name: Build LLVM/Cling on Windows systems if the cache is invalid
@@ -544,7 +545,7 @@ jobs:
         }
         cd ../../
         mkdir .\cppyy-backend\llvm-project\
-        cp -r .\llvm-project\ .\cppyy-backend\llvm-project\
+        cp -r -v .\llvm-project\ .\cppyy-backend\
         echo "Copy llvm-project folder to cppyy-backend for caching"
 
     - name: Save Cache LLVM/Clang runtime build directory
