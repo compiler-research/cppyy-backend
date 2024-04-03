@@ -1476,17 +1476,14 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
-
     std::string pureName;
     std::string explicit_params;
 
     if (name.find('<') != std::string::npos) {
-
         pureName = name.substr(0, name.find('<'));
         size_t start = name.find('<');
         size_t end = name.find('>');
         explicit_params = name.substr(start + 1, end - start - 1);
-        
     }
 
     else pureName = name;
@@ -1496,8 +1493,6 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     // take the vector of decls(unresolved candidates set), pass that along with type sets to Clang
 
     // CPyCppyy assumes that we attempt instantiation here
-    // Lets convert the std::string of template args from TemplateProxy to a std::vector of TemplateArgInfos
-
     std::vector<Cpp::TemplateArgInfo> arg_types;
     std::vector<Cpp::TemplateArgInfo> templ_params;
     Cppyy::AppendTypesSlow(proto, arg_types);
@@ -1512,7 +1507,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
     return cppmeth;
 
-    // if it fails, use Sema to propogate info about why it failed (DeductionInfo), maybe steer instantiation better with arg set returned from TemplateProxy
+    // if it fails, use Sema to propogate info about why it failed (DeductionInfo)
 
 }
 
