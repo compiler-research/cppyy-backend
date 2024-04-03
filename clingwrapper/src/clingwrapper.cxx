@@ -462,6 +462,10 @@ bool Cppyy::IsClassType(TCppType_t type) {
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string &name,
                             std::vector<Cpp::TemplateArgInfo>& types) {
+
+  // Add no new type if string is empty
+  if (name.empty()) return true;
+
   // Try going via Cppyy::GetType first.
   if (Cppyy::TCppType_t type = GetType(name, /*enable_slow_lookup=*/true)) {
     types.push_back(type);
@@ -1416,40 +1420,17 @@ bool Cppyy::IsConstMethod(TCppMethod_t method)
     return Cpp::IsConstMethod(method);
 }
 
-// Cppyy::TCppIndex_t Cppyy::GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace)
-// {
-//     if (!accept_namespace && IsNamespace(scope))
-//         return (TCppIndex_t)0;     // enforce lazy
-//
-//     if (scope == GLOBAL_HANDLE) {
-//         TCollection* coll = gROOT->GetListOfFunctionTemplates();
-//         if (coll) return (TCppIndex_t)coll->GetSize();
-//     } else {
-//         TClassRef& cr = type_from_handle(scope);
-//         if (cr.GetClass()) {
-//             TCollection* coll = cr->GetListOfFunctionTemplates(true);
-//             if (coll) return (TCppIndex_t)coll->GetSize();
-//         }
-//     }
-//
-// // failure ...
-//     return (TCppIndex_t)0;
-// }
-//
-// std::string Cppyy::GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth)
-// {
-//     if (scope == (TCppScope_t)GLOBAL_HANDLE)
-//         return ((THashList*)gROOT->GetListOfFunctionTemplates())->At((int)imeth)->GetName();
-//     else {
-//         TClassRef& cr = type_from_handle(scope);
-//         if (cr.GetClass())
-//             return cr->GetListOfFunctionTemplates(false)->At((int)imeth)->GetName();
-//     }
-//
-// // failure ...
-//     assert(!"should not be called unless GetNumTemplatedMethods() succeeded");
-//     return "";
-// }
+Cppyy::TCppIndex_t Cppyy::GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace)
+{
+    return Cpp::GetNumTemplatedMethods(scope, accept_namespace);
+}
+
+std::string Cppyy::GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth)
+{
+
+    return Cpp::GetTemplatedMethodName(scope, imeth);
+
+}
 //
 // bool Cppyy::IsTemplatedConstructor(TCppScope_t scope, TCppIndex_t imeth)
 // {
@@ -1495,85 +1476,46 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
-#ifdef PRINT_DEBUG
-    printf("========== GMT: %s; %s\n", name.c_str(), proto.c_str());
-#endif
-// // There is currently no clean way of extracting a templated method out of ROOT/meta
-// // for a variety of reasons, none of them fundamental. The game played below is to
-// // first get any pre-existing functions already managed by ROOT/meta, but if that fails,
-// // to do an explicit lookup that ignores the prototype (i.e. the full name should be
-// // enough), and finally to ignore the template arguments part of the name as this fails
-// // in cling if there are default parameters.
-//     TFunction* func = nullptr; ClassInfo_t* cl = nullptr;
-//     if (scope == (cppyy_scope_t)GLOBAL_HANDLE) {
-//         func = gROOT->GetGlobalFunctionWithPrototype(name.c_str(), proto.c_str());
-//         if (func && name.back() == '>') {
-//         // make sure that all template parameters match (more are okay, e.g. defaults or
-//         // ones derived from the arguments or variadic templates)
-//             if (!template_compare(name, func->GetName()))
-//                 func = nullptr;  // happens if implicit conversion matches the overload
-//         }
-//     } else {
-//         TClassRef& cr = type_from_handle(scope);
-//         if (cr.GetClass()) {
-//             func = cr->GetMethodWithPrototype(name.c_str(), proto.c_str());
-//             if (!func) {
-//                 cl = cr->GetClassInfo();
-//             // try base classes to cover a common 'using' case (TODO: this is stupid and misses
-//             // out on base classes; fix that with improved access to Cling)
-//                 TCppIndex_t nbases = GetNumBases(scope);
-//                 for (TCppIndex_t i = 0; i < nbases; ++i) {
-//                     TClassRef& base = type_from_handle(GetScope(GetBaseName(scope, i)));
-//                     if (base.GetClass()) {
-//                         func = base->GetMethodWithPrototype(name.c_str(), proto.c_str());
-//                         if (func) break;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     if (!func && name.back() == '>' && (cl || scope == (cppyy_scope_t)GLOBAL_HANDLE)) {
-//     // try again, ignoring proto in case full name is complete template
-//         auto declid = gInterpreter->GetFunction(cl, name.c_str());
-//         if (declid) {
-//              auto existing = gMethodTemplates.find(declid);
-//              if (existing == gMethodTemplates.end()) {
-//                  auto cw = new_CallWrapper(declid, name);
-//                  existing = gMethodTemplates.insert(std::make_pair(declid, cw)).first;
-//              }
-//              return (TCppMethod_t)existing->second;
-//         }
-//     }
-//
-//     if (func) {
-//     // make sure we didn't match a non-templated overload
-//         if (func->ExtraProperty() & kIsTemplateSpec)
-//             return (TCppMethod_t)new_CallWrapper(func);
-//
-//     // disregard this non-templated method as it will be considered when appropriate
-//         return (TCppMethod_t)nullptr;
-//     }
-//
-// // try again with template arguments removed from name, if applicable
-//     if (name.back() == '>') {
-//         auto pos = name.find('<');
-//         if (pos != std::string::npos) {
-//             TCppMethod_t cppmeth = GetMethodTemplate(scope, name.substr(0, pos), proto);
-//             if (cppmeth) {
-//             // allow if requested template names match up to the result
-//                 const std::string& alt = GetMethodFullName(cppmeth);
-//                 if (name.size() < alt.size() && alt.find('<') == pos) {
-//                     if (template_compare(name, alt))
-//                         return cppmeth;
-//                 }
-//             }
-//         }
-//     }
 
-// failure ...
-    return (TCppMethod_t)nullptr;
+    std::string pureName;
+    std::string explicit_params;
+
+    if (name.find('<') != std::string::npos) {
+
+        pureName = name.substr(0, name.find('<'));
+        size_t start = name.find('<');
+        size_t end = name.find('>');
+        explicit_params = name.substr(start + 1, end - start - 1);
+        
+    }
+
+    else pureName = name;
+
+    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods = Cpp::GetTemplatedMethods(pureName, scope, proto);
+    
+    // take the vector of decls(unresolved candidates set), pass that along with type sets to Clang
+
+    // CPyCppyy assumes that we attempt instantiation here
+    // Lets convert the std::string of template args from TemplateProxy to a std::vector of TemplateArgInfos
+
+    std::vector<Cpp::TemplateArgInfo> arg_types;
+    std::vector<Cpp::TemplateArgInfo> templ_params;
+    Cppyy::AppendTypesSlow(proto, arg_types);
+    Cppyy::AppendTypesSlow(explicit_params, templ_params);
+
+    // find the selected_candidate and instantiate
+    Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(unresolved_candidate_methods, templ_params, arg_types);
+    
+    if(!cppmeth){
+        return nullptr;
+    }
+
+    return cppmeth;
+
+    // if it fails, use Sema to propogate info about why it failed (DeductionInfo), maybe steer instantiation better with arg set returned from TemplateProxy
+
 }
+
 //
 // static inline
 // std::string type_remap(const std::string& n1, const std::string& n2)
