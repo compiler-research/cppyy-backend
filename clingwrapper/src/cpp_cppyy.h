@@ -254,7 +254,7 @@ namespace Cppyy {
 
 // // method/function reflection information ------------------------------------
     RPY_EXPORTED
-    std::vector<TCppMethod_t> GetClassMethods(TCppScope_t scope);
+    void GetClassMethods(TCppScope_t scope, std::vector<TCppMethod_t> &methods);
     RPY_EXPORTED
     std::vector<TCppScope_t> GetMethodsFromName(TCppScope_t scope,
                                                 const std::string& name);

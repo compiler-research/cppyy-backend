@@ -1312,9 +1312,9 @@ ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
 //     return (TCppIndex_t)0;         // unknown class?
 // }
 
-std::vector<Cppyy::TCppMethod_t> Cppyy::GetClassMethods(TCppScope_t scope)
+void Cppyy::GetClassMethods(TCppScope_t scope, std::vector<Cppyy::TCppMethod_t> &methods)
 {
-    return Cpp::GetClassMethods(scope);
+    Cpp::GetClassMethods(scope, methods);
 }
 
 std::vector<Cppyy::TCppScope_t> Cppyy::GetMethodsFromName(
