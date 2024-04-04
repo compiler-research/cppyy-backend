@@ -1431,7 +1431,10 @@ std::string Cppyy::GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth)
 {
     std::vector<Cppyy::TCppMethod_t> mc;
     Cpp::GetFunctionTemplatedDecls(scope, mc);
-    return GetMethodName(mc[imeth]);
+
+    if (imeth < mc.size()) return GetMethodName(mc[imeth]);
+
+    return "";
 }
 
 //
@@ -1491,7 +1494,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
     else pureName = name;
 
-    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods = Cpp::GetTemplatedMethods(pureName, scope, proto);
+    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods = Cpp::GetTemplatedMethods(pureName, scope);
     
     // take the vector of decls(unresolved candidates set), pass that along with type sets to Clang
 
