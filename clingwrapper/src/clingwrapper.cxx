@@ -1422,15 +1422,18 @@ bool Cppyy::IsConstMethod(TCppMethod_t method)
 
 Cppyy::TCppIndex_t Cppyy::GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace)
 {
-    return Cpp::GetNumTemplatedMethods(scope, accept_namespace);
+    std::vector<Cppyy::TCppMethod_t> mc;
+    Cpp::GetFunctionTemplatedDecls(scope, mc);
+    return mc.size();
 }
 
 std::string Cppyy::GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth)
 {
-
-    return Cpp::GetTemplatedMethodName(scope, imeth);
-
+    std::vector<Cppyy::TCppMethod_t> mc;
+    Cpp::GetFunctionTemplatedDecls(scope, mc);
+    return GetMethodName(mc[imeth]);
 }
+
 //
 // bool Cppyy::IsTemplatedConstructor(TCppScope_t scope, TCppIndex_t imeth)
 // {
