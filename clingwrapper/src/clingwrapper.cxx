@@ -1899,7 +1899,7 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 //      return (long long)ecst->GetValue();
 // }
 
-Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(
+Cppyy::TCppScope_t Cppyy::InstantiateTemplate(
              TCppScope_t tmpl, Cpp::TemplateArgInfo* args, size_t args_size)
 {
     return Cpp::InstantiateTemplate(tmpl, args, args_size);
