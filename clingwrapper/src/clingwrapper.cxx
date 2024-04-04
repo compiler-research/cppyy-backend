@@ -1902,7 +1902,7 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 Cppyy::TCppScope_t Cppyy::InstantiateTemplateClass(
              TCppScope_t tmpl, Cpp::TemplateArgInfo* args, size_t args_size)
 {
-    return Cpp::InstantiateClassTemplate(tmpl, args, args_size);
+    return Cpp::InstantiateTemplate(tmpl, args, args_size);
 }
 
 void Cppyy::DumpScope(TCppScope_t scope)
