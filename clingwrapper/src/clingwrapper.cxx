@@ -1404,7 +1404,8 @@ std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
 
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
 {
-    return Cpp::GetFunctionSignature(method);
+  // FIXME : Doesn't work for template functions as it does in cling
+  return Cpp::GetFunctionSignature(method);
 }
 
 std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args)
@@ -1494,9 +1495,9 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
     else pureName = name;
 
-    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods = Cpp::GetTemplatedMethods(pureName, scope);
-    
-    // take the vector of decls(unresolved candidates set), pass that along with type sets to Clang
+    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
+    Cpp::GetClassTemplatedMethods(pureName, scope,
+                                  unresolved_candidate_methods);
 
     // CPyCppyy assumes that we attempt instantiation here
     std::vector<Cpp::TemplateArgInfo> arg_types;
@@ -1504,7 +1505,6 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     Cppyy::AppendTypesSlow(proto, arg_types);
     Cppyy::AppendTypesSlow(explicit_params, templ_params);
 
-    // find the selected_candidate and instantiate
     Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(unresolved_candidate_methods, templ_params, arg_types);
     
     if(!cppmeth){
