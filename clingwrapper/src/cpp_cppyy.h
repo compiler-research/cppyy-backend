@@ -254,7 +254,7 @@ namespace Cppyy {
 
 // // method/function reflection information ------------------------------------
     RPY_EXPORTED
-    std::vector<TCppMethod_t> GetClassMethods(TCppScope_t scope);
+    void GetClassMethods(TCppScope_t scope, std::vector<TCppMethod_t> &methods);
     RPY_EXPORTED
     std::vector<TCppScope_t> GetMethodsFromName(TCppScope_t scope,
                                                 const std::string& name);
@@ -294,9 +294,9 @@ namespace Cppyy {
     bool        IsConstMethod(TCppMethod_t);
 
     RPY_EXPORTED
-    TCppIndex_t GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace = false) { assert(0 && "GetNumTemplatedMethods"); return 0; }
+    TCppIndex_t GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace = false);
     RPY_EXPORTED
-    std::string GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth) { assert(0 && "GetTemplatedMethodName"); return 0; }
+    std::string GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth);
     RPY_EXPORTED
     bool        IsTemplatedConstructor(TCppScope_t scope, TCppIndex_t imeth) { assert(0 && "IsTemplatedConstructor"); return 0; }
     RPY_EXPORTED
