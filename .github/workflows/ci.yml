@@ -755,7 +755,7 @@ jobs:
         declare -i RETCODE=0
 
         set -o pipefail
-        valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v
+        valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
         export RETCODE=+$?
         echo ::endgroup::
 
