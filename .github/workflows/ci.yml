@@ -755,16 +755,13 @@ jobs:
         declare -i RETCODE=0
 
         set -o pipefail
-        if ( "${{ matrix.clang-runtime }}" -imatch "17" ||  "${{ matrix.clang-runtime }}" -imatch "18")
-        { 
-         valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
-        }
+        if [[ "${{ matrix.clang-runtime }}" == "17" || "${{ matrix.clang-runtime }}" == "18" ]]; then
+          echo "Valgrind reports true for clang-runtime 17 or 18, due to memory leaks with LLVM"
+          valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
         else
-        {
+          echo "Running valgrind on passing tests"
           valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v
-        }
-        
-        
+        fi
         export RETCODE=+$?
         echo ::endgroup::
 
