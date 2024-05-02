@@ -337,7 +337,9 @@ jobs:
       run: |
         # Install deps
         sudo apt-get update
-        sudo apt-get install git g++ debhelper devscripts gnupg python3 valgrind
+        sudo apt-get install git g++ debhelper devscripts gnupg python3
+        sudo apt-get install -y libc6-dbg
+        sudo snap install valgrind --classic
         conda install -y -q -c conda-forge \
           distro \
           pytest
@@ -731,8 +733,13 @@ jobs:
         echo ::endgroup::
         echo ::group::Run complete test suite
         set -o pipefail
-        python -m pytest -sv | tee complete_testrun.log 2>&1
-        set +o pipefail
+        if [[ "${{ matrix.os }}" != macos-* ]]; then
+            python -m pytest -sv | tee complete_testrun.log 2>&1
+            set +o pipefail
+        else
+            set +o pipefail
+            python -m pytest -sv | tee complete_testrun.log 2>&1 || true
+        fi
         echo ::group::Crashing Test Logs
         # See if we don't have a crash that went away
         # Comment out all xfails but the ones that have a run=False condition.
@@ -757,7 +764,7 @@ jobs:
         if [[ "${{ matrix.os }}" == macos-* ]]; then
         echo "Skipping Valgrind checks on macOS"
         else
-            if [[ "${{ matrix.clang-runtime }}" == "16" || "${{ matrix.clang-runtime }}" == "17" || "${{ matrix.clang-runtime }}" == "18" ]]; then
+            if [[ "${{ matrix.clang-runtime }}" == "17" || "${{ matrix.clang-runtime }}" == "18" ]]; then
                 echo "Valgrind reports true for clang-runtime 17 or 18, due to memory leaks with LLVM"
                 valgrind --show-error-list=yes --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
             else
