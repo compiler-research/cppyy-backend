@@ -21,6 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: ubu22-x86-gcc12-clang-repl-18-cppyy
+            os: ubuntu-22.04
+            compiler: gcc-12
+            clang-runtime: '18'
+            cling: Off
+            cppyy: On
           - name: ubu22-x86-gcc12-clang-repl-17-cppyy
             os: ubuntu-22.04
             compiler: gcc-12
@@ -121,6 +127,12 @@ jobs:
           #  cling: On
           #  cling-version: '1.0'
           #  cppyy: On
+          - name: osx13-x86-clang-clang-repl-18-cppyy
+            os: macos-13
+            compiler: clang
+            clang-runtime: '18'
+            cling: Off
+            cppyy: On
           - name: osx13-x86-clang-clang-repl-17-cppyy
             os: macos-13
             compiler: clang
@@ -419,9 +431,12 @@ jobs:
           # Now build gtest.a and gtest_main for CppInterOp to run its tests.
           cmake --build . --target gtest_main --parallel ${{ env.ncpus }}
         else
-          # Apply patches
-          git apply -v ../cppyy-backend/patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
-          echo "Apply clang${{ matrix.clang-runtime }}-*.patch patches:"
+         # Apply patches
+          llvm_vers=$(echo "${{ matrix.clang-runtime }}" | tr '[:lower:]' '[:upper:]')
+          if [[ "${llvm_vers}" != "18" ]]; then
+            git apply -v ../cppyy-backend/patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
+            echo "Apply clang${{ matrix.clang-runtime }}-*.patch patches:"
+          fi
           cd build
           cmake -DLLVM_ENABLE_PROJECTS=clang                  \
                 -DLLVM_TARGETS_TO_BUILD="host;NVPTX"          \
@@ -742,7 +757,7 @@ jobs:
         python -m pytest -sv | tee complete_testrun.log 2>&1
         set +o pipefail
         echo ::endgroup::
-        
+
         echo ::group::Crashing Test Logs
         # See if we don't have a crash that went away
         # Comment out all xfails but the ones that have a run=False condition.
