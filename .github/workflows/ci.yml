@@ -21,6 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: ubu22-x86-gcc12-clang-repl-18-cppyy
+            os: ubuntu-22.04
+            compiler: gcc-12
+            clang-runtime: '18'
+            cling: Off
+            cppyy: On
           - name: ubu22-x86-gcc12-clang-repl-17-cppyy
             os: ubuntu-22.04
             compiler: gcc-12
@@ -121,6 +127,12 @@ jobs:
           #  cling: On
           #  cling-version: '1.0'
           #  cppyy: On
+          - name: osx13-x86-clang-clang-repl-18-cppyy
+            os: macos-13
+            compiler: clang
+            clang-runtime: '18'
+            cling: Off
+            cppyy: On
           - name: osx13-x86-clang-clang-repl-17-cppyy
             os: macos-13
             compiler: clang
@@ -337,7 +349,14 @@ jobs:
       run: |
         # Install deps
         sudo apt-get update
-        sudo apt-get install git g++ debhelper devscripts gnupg python3 valgrind
+        sudo apt-get install git g++ debhelper devscripts gnupg python3
+        sudo apt-get install -y libc6-dbg
+        sudo snap install valgrind --classic
+
+        # Install libraries used by the cppyy test suite
+        sudo apt install libeigen3-dev
+        sudo apt install libboost-all-dev
+        
         conda install -y -q -c conda-forge \
           distro \
           pytest
@@ -412,9 +431,12 @@ jobs:
           # Now build gtest.a and gtest_main for CppInterOp to run its tests.
           cmake --build . --target gtest_main --parallel ${{ env.ncpus }}
         else
-          # Apply patches
-          git apply -v ../cppyy-backend/patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
-          echo "Apply clang${{ matrix.clang-runtime }}-*.patch patches:"
+         # Apply patches
+          llvm_vers=$(echo "${{ matrix.clang-runtime }}" | tr '[:lower:]' '[:upper:]')
+          if [[ "${llvm_vers}" != "18" ]]; then
+            git apply -v ../cppyy-backend/patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
+            echo "Apply clang${{ matrix.clang-runtime }}-*.patch patches:"
+          fi
           cd build
           cmake -DLLVM_ENABLE_PROJECTS=clang                  \
                 -DLLVM_TARGETS_TO_BUILD="host;NVPTX"          \
@@ -729,10 +751,13 @@ jobs:
         python -m pip install pytest-xdist
         python -m pip install numba
         echo ::endgroup::
+
         echo ::group::Run complete test suite
         set -o pipefail
         python -m pytest -sv | tee complete_testrun.log 2>&1
         set +o pipefail
+        echo ::endgroup::
+
         echo ::group::Crashing Test Logs
         # See if we don't have a crash that went away
         # Comment out all xfails but the ones that have a run=False condition.
@@ -757,12 +782,12 @@ jobs:
         if [[ "${{ matrix.os }}" == macos-* ]]; then
         echo "Skipping Valgrind checks on macOS"
         else
-            if [[ "${{ matrix.clang-runtime }}" == "17" || "${{ matrix.clang-runtime }}" == "18" ]]; then
-                echo "Valgrind reports true for clang-runtime 17 or 18, due to memory leaks with LLVM"
-                valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
+            if [[ "${{ matrix.clang-runtime }}" == "17" ]]; then
+                echo "Valgrind reports true for clang-runtime 17, due to memory leaks with LLVM"
+                valgrind --show-error-list=yes --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v || true
             else
                 echo "Running valgrind on passing tests"
-                valgrind --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v
+                valgrind --show-error-list=yes --error-exitcode=1 --suppressions=../etc/valgrind-cppyy-cling.supp python -m pytest -m "not xfail" -v
             fi
         fi
         export RETCODE=+$?
