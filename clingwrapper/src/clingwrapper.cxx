@@ -1395,6 +1395,14 @@ std::string Cppyy::GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iar
         Cpp::GetFunctionArgType(method, iarg));
 }
 
+std::string Cppyy::GetMethodArgCanonTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
+{
+    return
+    Cpp::GetTypeAsString(
+        Cpp::GetCanonicalType(
+            Cpp::GetFunctionArgType(method, iarg)));
+}
+
 std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
 {
     if (!method)
