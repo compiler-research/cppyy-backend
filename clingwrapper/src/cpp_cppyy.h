@@ -334,7 +334,7 @@ namespace Cppyy {
     // RPY_EXPORTED
     // TCppIndex_t GetNumDatamembers(TCppScope_t scope, bool accept_namespace = false) { return 0; }
     RPY_EXPORTED
-    std::vector<TCppScope_t> GetDatamembers(TCppScope_t scope);
+    void GetDatamembers(TCppScope_t scope, std::vector<TCppScope_t>& datamembers);
     // GetDatamemberName is unused.
     // RPY_EXPORTED
     // std::string GetDatamemberName(TCppScope_t scope, TCppIndex_t idata) { return ""; }

@@ -1627,9 +1627,10 @@ bool Cppyy::IsStaticMethod(TCppMethod_t method)
 //     return (TCppIndex_t)0;         // unknown class?
 // }
 
-std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
+void Cppyy::GetDatamembers(TCppScope_t scope, std::vector<TCppScope_t>& datamembers)
 {
-    return Cpp::GetDatamembers(scope);
+    Cpp::GetDatamembers(scope, datamembers);
+    Cpp::GetStaticDatamembers(scope, datamembers);
 }
 
 bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
