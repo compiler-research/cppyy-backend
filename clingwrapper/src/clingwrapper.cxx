@@ -477,7 +477,7 @@ bool Cppyy::AppendTypesSlow(const std::string &name,
   if (!struct_count)
     Cpp::Declare(code.c_str()); // initialize the trampoline
 
-  std::string var = "__s" + std::to_string(struct_count++);
+  std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   // FIXME: We cannot use silent because it erases our error code from Declare!
   if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + name + "> " + var +";\n").c_str(), /*silent=*/false)) {
     TCppType_t varN = Cpp::GetVariableType(Cpp::GetNamed(var.c_str()));
