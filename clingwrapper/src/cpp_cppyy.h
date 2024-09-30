@@ -311,7 +311,7 @@ namespace Cppyy {
 
     RPY_EXPORTED
     TCppIndex_t  GetGlobalOperator(
-        TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& op) { assert(0 && "GetGlobalOperator");return 0; }
+        TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& op) { assert(0 && "GetGlobalOperator");return -1; }
 
 // method properties ---------------------------------------------------------
     RPY_EXPORTED
