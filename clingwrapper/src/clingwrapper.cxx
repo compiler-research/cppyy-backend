@@ -1497,7 +1497,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     if (name.find('<') != std::string::npos) {
         pureName = name.substr(0, name.find('<'));
         size_t start = name.find('<');
-        size_t end = name.find('>');
+        size_t end = name.rfind('>');
         explicit_params = name.substr(start + 1, end - start - 1);
     }
 
