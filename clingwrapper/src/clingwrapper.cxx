@@ -1412,8 +1412,26 @@ std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
 
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
 {
-  // FIXME : Doesn't work for template functions as it does in cling
-  return Cpp::GetFunctionSignature(method);
+    if (Cppyy::IsTemplatedMethod(method)) {
+        std::ostringstream sig;
+        sig << "(";
+        int nArgs = GetMethodNumArgs(method);
+        if (max_args != (TCppIndex_t)-1) nArgs = std::min(nArgs, (int)max_args);
+        for (int iarg = 0; iarg < nArgs; ++iarg) {
+            sig << Cppyy::GetMethodArgTypeAsString(method, iarg);
+            if (show_formal_args) {
+                const char* argname = Cppyy::GetMethodArgName(method, iarg).c_str();
+                if (argname && argname[0] != '\0') sig << " " << argname;
+                const char* defvalue = Cppyy::GetMethodArgDefault(method, iarg).c_str();
+                if (defvalue && defvalue[0] != '\0') sig << " = " << defvalue;
+            }
+            if (iarg != nArgs-1) sig << (show_formal_args ? ", " : ",");
+        }
+        sig << ")";
+        return sig.str();
+    }
+
+    else return Cpp::GetFunctionSignature(method);
 }
 
 std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args)
