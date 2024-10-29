@@ -477,7 +477,7 @@ bool Cppyy::AppendTypesSlow(const std::string &name,
   if (!struct_count)
     Cpp::Declare(code.c_str()); // initialize the trampoline
 
-  std::string var = "__s" + std::to_string(struct_count++);
+  std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   // FIXME: We cannot use silent because it erases our error code from Declare!
   if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + name + "> " + var +";\n").c_str(), /*silent=*/false)) {
     TCppType_t varN = Cpp::GetVariableType(Cpp::GetNamed(var.c_str()));
@@ -1515,7 +1515,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     if (name.find('<') != std::string::npos) {
         pureName = name.substr(0, name.find('<'));
         size_t start = name.find('<');
-        size_t end = name.find('>');
+        size_t end = name.rfind('>');
         explicit_params = name.substr(start + 1, end - start - 1);
     }
 
@@ -1645,9 +1645,10 @@ bool Cppyy::IsStaticMethod(TCppMethod_t method)
 //     return (TCppIndex_t)0;         // unknown class?
 // }
 
-std::vector<Cppyy::TCppScope_t> Cppyy::GetDatamembers(TCppScope_t scope)
+void Cppyy::GetDatamembers(TCppScope_t scope, std::vector<TCppScope_t>& datamembers)
 {
-    return Cpp::GetDatamembers(scope);
+    Cpp::GetDatamembers(scope, datamembers);
+    Cpp::GetStaticDatamembers(scope, datamembers);
 }
 
 bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
