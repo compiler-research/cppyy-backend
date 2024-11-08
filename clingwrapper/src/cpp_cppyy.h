@@ -232,6 +232,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppIndex_t GetNumBases(TCppScope_t klass);
     RPY_EXPORTED
+    TCppIndex_t GetNumBasesLongestBranch(TCppScope_t klass);
+    RPY_EXPORTED
     std::string GetBaseName(TCppScope_t klass, TCppIndex_t ibase);
     RPY_EXPORTED
     TCppScope_t GetBaseScope(TCppScope_t klass, TCppIndex_t ibase);
