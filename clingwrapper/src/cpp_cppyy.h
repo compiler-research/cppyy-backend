@@ -284,6 +284,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t GetMethodArgType(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
+    TCppIndex_t CompareMethodArgType(TCppMethod_t, TCppIndex_t iarg, const std::string &req_type);
+    RPY_EXPORTED
     std::string GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iarg);
     RPY_EXPORTED
     std::string GetMethodArgCanonTypeAsString(TCppMethod_t method, TCppIndex_t iarg);

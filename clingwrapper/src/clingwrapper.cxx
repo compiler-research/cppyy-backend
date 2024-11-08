@@ -1461,6 +1461,35 @@ std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
     return Cpp::GetFunctionArgDefault(method, iarg);
 }
 
+Cppyy::TCppIndex_t Cppyy::CompareMethodArgType(TCppMethod_t method, TCppIndex_t iarg, const std::string &req_type)
+{
+    // if (method) {
+    //     TFunction* f = m2f(method);
+    //     TMethodArg* arg = (TMethodArg *)f->GetListOfMethodArgs()->At((int)iarg);
+    //     void *argqtp = gInterpreter->TypeInfo_QualTypePtr(arg->GetTypeInfo());
+
+    //     TypeInfo_t *reqti = gInterpreter->TypeInfo_Factory(req_type.c_str());
+    //     void *reqqtp = gInterpreter->TypeInfo_QualTypePtr(reqti);
+
+    //     if (ArgSimilarityScore(argqtp, reqqtp) < 10) {
+    //         return ArgSimilarityScore(argqtp, reqqtp);
+    //     }
+    //     else { // Match using underlying types
+    //         if(gInterpreter->IsPointerType(argqtp))
+    //             argqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetPointerType(argqtp));
+
+    //         // Handles reference types and strips qualifiers
+    //         TypeInfo_t *arg_ul = gInterpreter->GetNonReferenceType(argqtp);
+    //         TypeInfo_t *req_ul = gInterpreter->GetNonReferenceType(reqqtp);
+    //         argqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetUnqualifiedType(gInterpreter->TypeInfo_QualTypePtr(arg_ul)));
+    //         reqqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetUnqualifiedType(gInterpreter->TypeInfo_QualTypePtr(req_ul)));
+
+    //         return ArgSimilarityScore(argqtp, reqqtp);
+    //     }
+    // }
+    return 0; // Method is not valid
+}
+
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
 {
     std::ostringstream sig;
