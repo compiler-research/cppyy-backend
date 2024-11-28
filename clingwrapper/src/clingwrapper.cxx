@@ -1068,95 +1068,15 @@ bool Cppyy::IsVariable(TCppScope_t scope)
 //             cppnames.insert(outer_with_template(name + ns_scope.size()));
 //     }
 // }
-//
-// void Cppyy::GetAllCppNames(TCppScope_t scope, std::set<std::string>& cppnames)
-// {
-// // Collect all known names of C++ entities under scope. This is useful for IDEs
-// // employing tab-completion, for example. Note that functions names need not be
-// // unique as they can be overloaded.
-//     TClassRef& cr = type_from_handle(scope);
-//     if (scope != GLOBAL_HANDLE && !(cr.GetClass() && cr->Property()))
-//         return;
-//
-//     std::string ns_scope = GetFinalName(scope);
-//     if (scope != GLOBAL_HANDLE) ns_scope += "::";
-//
-// // add existing values from read rootmap files if within this scope
-//     TCollection* coll = gInterpreter->GetMapfile()->GetTable();
-//     {
-//         TIter itr{coll};
-//         TEnvRec* ev = nullptr;
-//         while ((ev = (TEnvRec*)itr.Next())) {
-//         // TEnv contains rootmap entries and user-side rootmap files may be already
-//         // loaded on startup. Thus, filter on file name rather than load time.
-//             if (gRootSOs.find(ev->GetValue()) == gRootSOs.end())
-//                 cond_add(scope, ns_scope, cppnames, ev->GetName(), true);
-//         }
-//     }
-//
-// // do we care about the class table or are the rootmap and list of types enough?
-// [>
-//     gClassTable->Init();
-//     const int N = gClassTable->Classes();
-//     for (int i = 0; i < N; ++i)
-//         cond_add(scope, ns_scope, cppnames, gClassTable->Next());
-// */
-//
-// // any other types (e.g. that may have come from parsing headers)
-//     coll = gROOT->GetListOfTypes();
-//     {
-//         TIter itr{coll};
-//         TDataType* dt = nullptr;
-//         while ((dt = (TDataType*)itr.Next())) {
-//             if (!(dt->Property() & kIsFundamental)) {
-//                 cond_add(scope, ns_scope, cppnames, dt->GetName());
-//             }
-//         }
-//     }
-//
-// // add functions
-//     coll = (scope == GLOBAL_HANDLE) ?
-//         gROOT->GetListOfGlobalFunctions() : cr->GetListOfMethods();
-//     {
-//         TIter itr{coll};
-//         TFunction* obj = nullptr;
-//         while ((obj = (TFunction*)itr.Next())) {
-//             const char* nm = obj->GetName();
-//         // skip templated functions, adding only the un-instantiated ones
-//             if (nm && nm[0] != '_' && strstr(nm, "<") == 0 && strncmp(nm, "operator", 8) != 0) {
-//                 if (gInitialNames.find(nm) == gInitialNames.end())
-//                     cppnames.insert(nm);
-//             }
-//         }
-//     }
-//
-// // add uninstantiated templates
-//     coll = (scope == GLOBAL_HANDLE) ?
-//         gROOT->GetListOfFunctionTemplates() : cr->GetListOfFunctionTemplates();
-//     FILL_COLL(TFunctionTemplate, kIsPrivate | kIsProtected)
-//
-// // add (global) data members
-//     if (scope == GLOBAL_HANDLE) {
-//         coll = gROOT->GetListOfGlobals();
-//         FILL_COLL(TGlobal, kIsPrivate | kIsProtected)
-//     } else {
-//         coll = cr->GetListOfDataMembers();
-//         FILL_COLL(TDataMember, kIsPrivate | kIsProtected)
-//     }
-//
-// // add enums values only for user classes/namespaces
-//     if (scope != GLOBAL_HANDLE && scope != STD_HANDLE) {
-//         coll = cr->GetListOfEnums();
-//         FILL_COLL(TEnum, kIsPrivate | kIsProtected)
-//     }
-//
-// #ifdef __APPLE__
-// // special case for Apple, add version namespace '__1' entries to std
-//     if (scope == STD_HANDLE)
-//         GetAllCppNames(GetScope("std::__1"), cppnames);
-// #endif
-// }
-//
+
+void Cppyy::GetAllCppNames(TCppScope_t scope, std::set<std::string>& cppnames)
+{
+// Collect all known names of C++ entities under scope. This is useful for IDEs
+// employing tab-completion, for example. Note that functions names need not be
+// unique as they can be overloaded.
+    Cpp::GetAllCppNames(scope, cppnames);
+}
+
 //
 // // class reflection information ----------------------------------------------
 std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)

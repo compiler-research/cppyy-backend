@@ -214,7 +214,7 @@ namespace Cppyy {
     bool IsVariable(TCppScope_t scope);
 
     RPY_EXPORTED
-    void GetAllCppNames(TCppScope_t scope, std::set<std::string>& cppnames) { return; }
+    void GetAllCppNames(TCppScope_t scope, std::set<std::string>& cppnames);
 
 // // namespace reflection information ------------------------------------------
     RPY_EXPORTED
