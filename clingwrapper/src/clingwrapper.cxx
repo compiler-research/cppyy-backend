@@ -565,13 +565,32 @@ Cppyy::TCppScope_t Cppyy::GetUnderlyingScope(TCppScope_t scope)
 Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
                                    TCppScope_t parent_scope)
 {
-#ifndef NDEBUG
-    if (name.find("::") != std::string::npos)
-        throw std::runtime_error("Calling Cppyy::GetScope with qualified name '"
-                                 + name + "'\n");
-#endif // NDEBUG
+    if (Cppyy::TCppScope_t scope = Cpp::GetScope(name, parent_scope))
+      return scope;
+    if (!parent_scope || parent_scope == Cpp::GetGlobalScope())
+      if (Cppyy::TCppScope_t scope = Cpp::GetScopeFromCompleteName(name))
+        return scope;
 
-    return Cpp::GetScope(name, parent_scope);
+    // FIXME: avoid string parsing here
+    if (name.find('<') != std::string::npos) {
+      // Templated Type; May need instantiation
+      size_t start = name.find('<');
+      size_t end = name.rfind('>');
+      std::string params = name.substr(start + 1, end - start - 1);
+
+      std::string pure_name = name.substr(0, start);
+      Cppyy::TCppScope_t scope = Cpp::GetScope(pure_name, parent_scope);
+      if (!scope && (!parent_scope || parent_scope == Cpp::GetGlobalScope()))
+        scope = Cpp::GetScopeFromCompleteName(pure_name);
+
+      if (Cppyy::IsTemplate(scope)) {
+        std::vector<Cpp::TemplateArgInfo> templ_params;
+        if (!Cppyy::AppendTypesSlow(params, templ_params))
+          return Cpp::InstantiateTemplate(scope, templ_params.data(),
+                                          templ_params.size());
+      }
+    }
+    return nullptr;
 }
 
 Cppyy::TCppScope_t Cppyy::GetFullScope(const std::string& name)
