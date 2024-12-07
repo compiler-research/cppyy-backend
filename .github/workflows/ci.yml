@@ -352,7 +352,7 @@ jobs:
          # Apply patches
           llvm_vers=$(echo "${{ matrix.clang-runtime }}" | tr '[:lower:]' '[:upper:]')
           if [[ "${llvm_vers}" == "16" ]]||[[ "${llvm_vers}" == "17" ]]; then
-            git apply -v ../cppyy-backend/patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
+            git apply -v patches/llvm/clang${{ matrix.clang-runtime }}-*.patch
             echo "Apply clang${{ matrix.clang-runtime }}-*.patch patches:"
           fi
           cd build
@@ -419,7 +419,7 @@ jobs:
         }
         else
         {
-          cp -r ..\cppyy-backend\patches\llvm\clang${{ matrix.clang-runtime }}*
+          cp -r patches\llvm\clang${{ matrix.clang-runtime }}*
           #FIXME: Apply patches without hardcoding
           if ( "${{ matrix.clang-runtime }}" -imatch "16" )
           {
