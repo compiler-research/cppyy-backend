@@ -595,7 +595,7 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
 
 Cppyy::TCppScope_t Cppyy::GetFullScope(const std::string& name)
 {
-    return Cpp::GetScopeFromCompleteName(name);
+  return Cppyy::GetScope(name);
 }
 
 Cppyy::TCppScope_t Cppyy::GetTypeScope(TCppScope_t var)
@@ -988,7 +988,7 @@ bool Cppyy::IsEnumScope(TCppScope_t scope)
 
 bool Cppyy::IsEnumConstant(TCppScope_t scope)
 {
-    return Cpp::IsEnumConstant(scope);
+  return Cpp::IsEnumConstant(Cpp::GetUnderlyingScope(scope));
 }
 
 bool Cppyy::IsEnumType(TCppType_t type)
@@ -1106,7 +1106,7 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetUsingNamespaces(TCppScope_t scope)
 // // class reflection information ----------------------------------------------
 std::string Cppyy::GetFinalName(TCppType_t klass)
 {
-    return Cpp::GetCompleteName(klass);
+  return Cpp::GetCompleteName(Cpp::GetUnderlyingScope(klass));
 }
 
 std::string Cppyy::GetScopedFinalName(TCppType_t klass)
@@ -1696,13 +1696,13 @@ bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
 
 Cppyy::TCppType_t Cppyy::GetDatamemberType(TCppScope_t var)
 {
-    return Cpp::GetVariableType(var);
+  return Cpp::GetVariableType(Cpp::GetUnderlyingScope(var));
 }
 
 std::string Cppyy::GetDatamemberTypeAsString(TCppScope_t scope)
 {
-    return Cpp::GetTypeAsString(
-        Cpp::GetVariableType(scope));
+  return Cpp::GetTypeAsString(
+      Cpp::GetVariableType(Cpp::GetUnderlyingScope(scope)));
 }
 
 std::string Cppyy::GetTypeAsString(TCppType_t type)
@@ -1712,7 +1712,7 @@ std::string Cppyy::GetTypeAsString(TCppType_t type)
 
 intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)
 {
-    return Cpp::GetVariableOffset(var);
+  return Cpp::GetVariableOffset(Cpp::GetUnderlyingScope(var));
 }
 
 // static inline
@@ -1804,7 +1804,7 @@ bool Cppyy::IsPrivateData(TCppScope_t datamem)
 
 bool Cppyy::IsStaticDatamember(TCppScope_t var)
 {
-    return Cpp::IsStaticVariable(var);
+  return Cpp::IsStaticVariable(Cpp::GetUnderlyingScope(var));
 }
 
 bool Cppyy::IsConstVar(TCppScope_t var)
@@ -1865,7 +1865,7 @@ std::vector<Cppyy::TCppScope_t> Cppyy::GetEnumConstants(TCppScope_t scope)
 
 Cppyy::TCppType_t Cppyy::GetEnumConstantType(TCppScope_t scope)
 {
-    return Cpp::GetEnumConstantType(scope);
+  return Cpp::GetEnumConstantType(Cpp::GetUnderlyingScope(scope));
 }
 
 Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
