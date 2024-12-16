@@ -1577,36 +1577,67 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 //     }
 //     return n1;
 // }
-//
-// Cppyy::TCppIndex_t Cppyy::GetGlobalOperator(
-//     TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& opname)
-// {
-// // Find a global operator function with a matching signature; prefer by-ref, but
-// // fall back on by-value if that fails.
-//     std::string lcname1 = TClassEdit::CleanType(lc.c_str());
-//     const std::string& rcname = rc.empty() ? rc : type_remap(TClassEdit::CleanType(rc.c_str()), lcname1);
-//     const std::string& lcname = type_remap(lcname1, rcname);
-//
-//     std::string proto = lcname + "&" + (rc.empty() ? rc : (", " + rcname + "&"));
-//     if (scope == (cppyy_scope_t)GLOBAL_HANDLE) {
-//         TFunction* func = gROOT->GetGlobalFunctionWithPrototype(opname.c_str(), proto.c_str());
-//         if (func) retIsDatamemberPresent>GetGlobalFunctionWithPrototype(opname.c_str(), proto.c_str());
-//         if (func) return (TCppIndex_t)new_CallWrapper(func);
-//     } else {
-//         TClassRef& cr = type_from_handle(scope);
-//         if (cr.GetClass()) {
-//             TFunction* func = cr->GetMethodWithPrototype(opname.c_str(), proto.c_str());
-//             if (func) return (TCppIndex_t)cr->GetListOfMethods()->IndexOf(func);
-//             proto = lcname + (rc.empty() ? rc : (", " + rcname));
-//             func = cr->GetMethodWithPrototype(opname.c_str(), proto.c_str());
-//             if (func) return (TCppIndex_t)cr->GetListOfMethods()->IndexOf(func);
-//         }
-//     }
-//
-// // failure ...
-//     return (TCppIndex_t)-1;
-// }
-//
+
+Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
+    TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& opname)
+{
+    if ((lc.find('<') != std::string::npos) || (rc.find('<') != std::string::npos)) {
+        // arguments of templated types
+        return nullptr;
+    }
+
+    std::vector<TCppScope_t> overloads;
+    if (opname == "+")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Plus, overloads);
+    else if (opname == "-")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Minus, overloads);
+    else if (opname == "*")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Star, overloads);
+    else if (opname == "/")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Slash, overloads);
+    else if (opname == "<")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Less, overloads);
+    else if (opname == "<=")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_LessEqual, overloads);
+    else if (opname == ">")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Greater, overloads);
+    else if (opname == ">=")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterEqual, overloads);
+    else if (opname == "==")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
+    else if (opname == "!=")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
+    else if (opname == "<<")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_LessLess, overloads);
+    else if (opname == ">>")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterGreater, overloads);
+    else if (opname == "&")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Amp, overloads);
+    else if (opname == "|")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Pipe, overloads);
+
+    for (auto overload: overloads) {
+        if (Cpp::IsTemplatedFunction(overload))
+            continue;
+
+        TCppType_t lhs_type = Cpp::GetFunctionArgType(overload, 0);
+        if (lc != Cpp::GetTypeAsString(Cpp::GetUnderlyingType(lhs_type)))
+            continue;
+
+        if ((!rc.empty()) && (Cpp::GetFunctionNumArgs(overload) == 2)) {
+            TCppType_t rhs_type = Cpp::GetFunctionArgType(overload, 1);
+            if (rc != Cpp::GetTypeAsString(Cpp::GetUnderlyingType(rhs_type)))
+                continue;
+        } else {
+            continue;
+        }
+
+        return overload;
+    }
+
+    return nullptr;
+}
+
 // // method properties ---------------------------------------------------------
 bool Cppyy::IsDeletedMethod(TCppMethod_t method)
 {
