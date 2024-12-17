@@ -349,7 +349,7 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetTypeAsString(TCppType_t type);
     RPY_EXPORTED
-    intptr_t    GetDatamemberOffset(TCppScope_t var);
+    intptr_t    GetDatamemberOffset(TCppScope_t var, TCppScope_t klass = nullptr);
     RPY_EXPORTED
     bool CheckDatamember(TCppScope_t scope, const std::string& name);
 
