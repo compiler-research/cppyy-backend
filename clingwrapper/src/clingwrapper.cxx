@@ -1710,9 +1710,9 @@ std::string Cppyy::GetTypeAsString(TCppType_t type)
     return Cpp::GetTypeAsString(type);
 }
 
-intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var)
+intptr_t Cppyy::GetDatamemberOffset(TCppScope_t var, TCppScope_t klass)
 {
-  return Cpp::GetVariableOffset(Cpp::GetUnderlyingScope(var));
+  return Cpp::GetVariableOffset(Cpp::GetUnderlyingScope(var), klass);
 }
 
 // static inline
