@@ -111,7 +111,7 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t GetGlobalScope();
     RPY_EXPORTED
-    TCppType_t  GetActualClass(TCppType_t klass, TCppObject_t obj) { assert(0 && "GetActualClass"); return 0; }
+    TCppScope_t GetActualClass(TCppScope_t klass, TCppObject_t obj);
     RPY_EXPORTED
     size_t      SizeOf(TCppScope_t klass);
     RPY_EXPORTED

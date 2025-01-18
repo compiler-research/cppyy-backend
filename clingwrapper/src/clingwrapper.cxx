@@ -645,70 +645,27 @@ bool Cppyy::IsTypedefed(TCppScope_t handle)
     return Cpp::IsTypedefed(handle);
 }
 
-// namespace {
-//     class AutoCastRTTI {
-//     public:
-//         virtual ~AutoCastRTTI() {}
-//     };
-// }
-//
-// Cppyy::TCppType_t Cppyy::GetActualClass(TCppType_t klass, TCppObject_t obj)
-// {
-//     TClassRef& cr = type_from_handle(klass);
-//     if (!cr.GetClass() || !obj) return klass;
-//
-//     if (!(cr->ClassProperty() & kClassHasVirtual))
-//         return klass;   // not polymorphic: no RTTI info available
-//
-// #ifdef _WIN64
-// // Cling does not provide a consistent ImageBase address for calculating relative addresses
-// // as used in Windows 64b RTTI. So, check for our own RTTI extension instead. If that fails,
-// // see whether the unmangled raw_name is available (e.g. if this is an MSVC compiled rather
-// // than JITed class) and pass on if it is.
-//     volatile const char* raw = nullptr;     // to prevent too aggressive reordering
-//     try {
-//     // this will filter those objects that do not have RTTI to begin with (throws)
-//         AutoCastRTTI* pcst = (AutoCastRTTI*)obj;
-//         raw = typeid(*pcst).raw_name();
-//
-//     // check the signature id (0 == absolute, 1 == relative, 2 == ours)
-//         void* vfptr = *(void**)((intptr_t)obj);
-//         void* meta = (void*)((intptr_t)*((void**)((intptr_t)vfptr-sizeof(void*))));
-//         if (*(intptr_t*)meta == 2) {
-//         // access the extra data item which is an absolute pointer to the RTTI
-//             void* ptdescr = (void*)((intptr_t)meta + 4*sizeof(unsigned long)+sizeof(void*));
-//             if (ptdescr && *(void**)ptdescr) {
-//                 auto rtti = *(std::type_info**)ptdescr;
-//                 raw = rtti->raw_name();
-//                 if (raw && raw[0] != '\0')    // likely unnecessary
-//                     return (TCppType_t)GetScope(rtti->name());
-//             }
-//
-//             return klass;        // do not fall through if no RTTI info available
-//         }
-//
-//     // if the raw name is the empty string (no guarantees that this is so as truly, the
-//     // address is corrupt, but it is common to be empty), then there is no accessible RTTI
-//     // and getting the unmangled name will crash ...
-//
-//     // a common case are the i/o stream objects b/c these are pulled in from libCling
-//         if (!raw || (strstr(cr->GetName(), "std::basic_") && strstr(cr->GetName(), "stream")) || raw[0] == '\0')
-//             return klass;
-//     } catch (std::bad_typeid) {
-//         return klass;        // can't risk passing to ROOT/meta as it may do RTTI
-//     }
-// #endif
-//
-//     TClass* clActual = cr->GetActualClass((void*)obj);
-//     if (clActual && clActual != cr.GetClass()) {
-//         auto itt = g_name2classrefidx.find(clActual->GetName());
-//         if (itt != g_name2classrefidx.end())
-//             return (TCppType_t)itt->second;
-//         return (TCppType_t)GetScope(clActual->GetName());
-//     }
-//
-//     return klass;
-// }
+namespace {
+class AutoCastRTTI {
+public:
+  virtual ~AutoCastRTTI() {}
+};
+} // namespace
+
+Cppyy::TCppScope_t Cppyy::GetActualClass(TCppScope_t klass, TCppObject_t obj) {
+    if (!Cpp::IsClassPolymorphic(klass))
+        return klass;
+
+    const std::type_info *typ = &typeid(*(AutoCastRTTI *)obj);
+
+    std::string mangled_name = typ->name();
+    std::string demangled_name = Cpp::Demangle(mangled_name);
+
+    if (TCppScope_t scope = Cppyy::GetScope(demangled_name))
+        return scope;
+
+    return klass;
+}
 
 size_t Cppyy::SizeOf(TCppScope_t klass)
 {
