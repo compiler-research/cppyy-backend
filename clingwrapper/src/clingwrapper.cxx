@@ -250,6 +250,9 @@ public:
                "#include <set>\n" // FIXME: Replace with modules
                "#include <chrono>\n" // FIXME: Replace with modules
                "#include <cmath>\n" // FIXME: Replace with modules
+               "#if __has_include(<optional>)\n"
+                   "#include <optional>\n"
+               "#endif\n"
                "#include \"clang/Interpreter/CppInterOp.h\"";
         Cpp::Process(code);
 
