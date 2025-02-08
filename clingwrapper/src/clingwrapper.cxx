@@ -448,7 +448,8 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     Cppyy::TCppType_t canonType = Cpp::GetCanonicalType(type);
 
     if (Cpp::IsEnumType(canonType)) {
-        return Cpp::GetIntegerTypeFromEnumType(canonType);
+        if (Cppyy::GetTypeAsString(type) != "std::byte")
+            return Cpp::GetIntegerTypeFromEnumType(canonType);
     }
 
     return canonType;
