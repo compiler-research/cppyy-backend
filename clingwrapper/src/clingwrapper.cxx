@@ -1656,6 +1656,7 @@ void Cppyy::GetDatamembers(TCppScope_t scope, std::vector<TCppScope_t>& datamemb
 {
     Cpp::GetDatamembers(scope, datamembers);
     Cpp::GetStaticDatamembers(scope, datamembers);
+    Cpp::GetEnumConstantDatamembers(scope, datamembers, false);
 }
 
 bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
