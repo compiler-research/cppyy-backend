@@ -23,8 +23,8 @@ if(DEFINED CppInterOp_DIR)
 else()
     set(_interop_install_dir ${CMAKE_BINARY_DIR}/CppInterOp/install)
 
-    if(DEFINED USE_CLING)
-        list(APPEND _interop_cmake_args "-DUSE_CLING=${USE_CLING}")
+    if(DEFINED CPPINTEROP_USE_CLING)
+        list(APPEND _interop_cmake_args "-DCPPINTEROP_USE_CLING=${CPPINTEROP_USE_CLING}")
     endif()
 
     if(DEFINED Cling_DIR)

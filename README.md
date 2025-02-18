@@ -181,22 +181,22 @@ cd CppInterOp\build\
 
 Now if you want to build CppInterOp with Clang-REPL then execute the following commands on Linux and MacOS
 ```
-cmake -DBUILD_SHARED_LIBS=ON -DUSE_CLING=Off -DUSE_REPL=ON -DLLVM_DIR=$LLVM_DIR/build/lib/cmake/llvm -DClang_DIR=$LLVM_DIR/build/lib/cmake/clang -DCMAKE_INSTALL_PREFIX=$CPPINTEROP_DIR ..
+cmake -DBUILD_SHARED_LIBS=ON -DCPPINTEROP_USE_CLING=Off -DCPPINTEROP_USE_REPL=ON -DLLVM_DIR=$LLVM_DIR/build/lib/cmake/llvm -DClang_DIR=$LLVM_DIR/build/lib/cmake/clang -DCMAKE_INSTALL_PREFIX=$CPPINTEROP_DIR ..
 cmake --build . --target install --parallel $(nproc --all)
 ```
 and
 ```
-cmake -DUSE_CLING=Off -DUSE_REPL=ON -DLLVM_DIR=$LLVM_DIR\build\lib\cmake\llvm -DClang_DIR=$LLVM_DIR\build\lib\cmake\clang -DCMAKE_INSTALL_PREFIX=$env:CPPINTEROP_DIR ..
+cmake -DCPPINTEROP_USE_CLING=Off -DCPPINTEROP_USE_REPL=ON -DLLVM_DIR=$LLVM_DIR\build\lib\cmake\llvm -DClang_DIR=$LLVM_DIR\build\lib\cmake\clang -DCMAKE_INSTALL_PREFIX=$env:CPPINTEROP_DIR ..
 cmake --build . --target install --parallel $env:ncpus
 ```
 on Windows. If alternatively you would like to install CppInterOp with Cling then execute the following commands on Linux and MacOS
 ```
-cmake -DBUILD_SHARED_LIBS=ON -DUSE_CLING=ON -DUSE_REPL=Off -DCling_DIR=$LLVM_DIR/build/tools/cling -DLLVM_DIR=$LLVM_DIR/build/lib/cmake/llvm -DClang_DIR=$LLVM_DIR/build/lib/cmake/clang -DCMAKE_INSTALL_PREFIX=$CPPINTEROP_DIR ..
+cmake -DBUILD_SHARED_LIBS=ON -DCPPINTEROP_USE_CLING=ON -DCPPINTEROP_USE_REPL=Off -DCling_DIR=$LLVM_DIR/build/tools/cling -DLLVM_DIR=$LLVM_DIR/build/lib/cmake/llvm -DClang_DIR=$LLVM_DIR/build/lib/cmake/clang -DCMAKE_INSTALL_PREFIX=$CPPINTEROP_DIR ..
 cmake --build . --target install --parallel $(nproc --all)
 ```
 and
 ```
-cmake -DUSE_CLING=ON -DUSE_REPL=Off -DCling_DIR=$LLVM_DIR\build\tools\cling -DLLVM_DIR=$LLVM_DIR\build\lib\cmake\llvm -DClang_DIR=$LLVM_DIR\build\lib\cmake\clang -DCMAKE_INSTALL_PREFIX=$env:CPPINTEROP_DIR ..
+cmake -DCPPINTEROP_USE_CLING=ON -DCPPINTEROP_USE_REPL=Off -DCling_DIR=$LLVM_DIR\build\tools\cling -DLLVM_DIR=$LLVM_DIR\build\lib\cmake\llvm -DClang_DIR=$LLVM_DIR\build\lib\cmake\clang -DCMAKE_INSTALL_PREFIX=$env:CPPINTEROP_DIR ..
 cmake --build . --target install --parallel $env:ncpus
 ```
 
