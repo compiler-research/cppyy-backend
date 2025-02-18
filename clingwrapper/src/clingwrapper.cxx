@@ -463,6 +463,10 @@ bool Cppyy::IsClassType(TCppType_t type) {
     return Cpp::IsRecordType(type);
 }
 
+bool Cppyy::IsFunctionPointerType(TCppType_t type) {
+    return Cpp::IsFunctionPointerType(type);
+}
+
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string &name,
                             std::vector<Cpp::TemplateArgInfo>& types) {
