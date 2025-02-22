@@ -314,7 +314,9 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppMethod_t GetMethodTemplate(
         TCppScope_t scope, const std::string& name, const std::string& proto);
-
+    RPY_EXPORTED
+    void GetClassOperators(Cppyy::TCppScope_t klass, const std::string& opname,
+                           std::vector<TCppScope_t>& operators);
     RPY_EXPORTED
     TCppMethod_t  GetGlobalOperator(
         TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& op);
