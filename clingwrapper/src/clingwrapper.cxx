@@ -1490,8 +1490,9 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
         size_t start = name.find('<');
         size_t end = name.rfind('>');
         explicit_params = name.substr(start + 1, end - start - 1);
-    } else
+    } else {
         pureName = name;
+    }
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     Cpp::GetClassTemplatedMethods(pureName, scope,
