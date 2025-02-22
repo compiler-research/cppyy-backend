@@ -1484,18 +1484,22 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     std::string pureName;
     std::string explicit_params;
 
-    if (name.find('<') != std::string::npos) {
+    if ((name.find("operator<") != 0) &&
+        (name.find('<') != std::string::npos)) {
         pureName = name.substr(0, name.find('<'));
         size_t start = name.find('<');
         size_t end = name.rfind('>');
         explicit_params = name.substr(start + 1, end - start - 1);
-    }
-
-    else pureName = name;
+    } else
+        pureName = name;
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     Cpp::GetClassTemplatedMethods(pureName, scope,
                                   unresolved_candidate_methods);
+    if (unresolved_candidate_methods.empty()) {
+        // try operators
+        Cppyy::GetClassOperators(scope, pureName, unresolved_candidate_methods);
+    }
 
     // CPyCppyy assumes that we attempt instantiation here
     std::vector<Cpp::TemplateArgInfo> arg_types;
@@ -1520,32 +1524,70 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
 }
 
-//
-// static inline
-// std::string type_remap(const std::string& n1, const std::string& n2)
-// {
-// // Operator lookups of (C++ string, Python str) should succeed for the combos of
-// // string/str, wstring/str, string/unicode and wstring/unicode; since C++ does not have a
-// // operator+(std::string, std::wstring), we'll have to look up the same type and rely on
-// // the converters in CPyCppyy/_cppyy.
-//     if (n1 == "str" || n1 == "unicode") {
-//         if (n2 == "std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t> >")
-//             return n2;                      // match like for like
-//         return "std::string";               // probably best bet
-//     } else if (n1 == "float") {
-//         return "double";                    // debatable, but probably intended
-//     } else if (n1 == "complex") {
-//         return "std::complex<double>";
-//     }
-//     return n1;
-// }
+static inline std::string type_remap(const std::string& n1,
+                                     const std::string& n2) {
+    // Operator lookups of (C++ string, Python str) should succeed for the
+    // combos of string/str, wstring/str, string/unicode and wstring/unicode;
+    // since C++ does not have a operator+(std::string, std::wstring), we'll
+    // have to look up the same type and rely on the converters in
+    // CPyCppyy/_cppyy.
+    if (n1 == "str" || n1 == "unicode") {
+        // if (n2 ==
+        // "std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t>
+        // >")
+        //     return n2;                      // match like for like
+        return "std::string"; // probably best bet
+    } else if (n1 == "float") {
+        return "double"; // debatable, but probably intended
+    } else if (n1 == "complex") {
+        return "std::complex<double>";
+    }
+    return n1;
+}
+
+void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
+                              const std::string& opname,
+                              std::vector<TCppScope_t>& operators) {
+    if (opname == "operator+")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Plus, operators);
+    else if (opname == "operator-")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Minus, operators);
+    else if (opname == "operator*")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Star, operators);
+    else if (opname == "operator/")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Slash, operators);
+    else if (opname == "operator<")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Less, operators);
+    else if (opname == "operator<=")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_LessEqual, operators);
+    else if (opname == "operator>")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Greater, operators);
+    else if (opname == "operator>=")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_GreaterEqual, operators);
+    // FIXME: enabling `==` and `!=` requires friend operators
+    // else if (opname == "operator==")
+    //     Cpp::GetOperator(klass, Cpp::Operator::OP_EqualEqual, operators);
+    // else if (opname == "operator!=")
+    //     Cpp::GetOperator(klass, Cpp::Operator::OP_ExclaimEqual, operators);
+    else if (opname == "operator<<")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_LessLess, operators);
+    else if (opname == "operator>>")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_GreaterGreater, operators);
+    else if (opname == "operator&")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Amp, operators);
+    else if (opname == "operator|")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Pipe, operators);
+}
 
 Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     TCppType_t scope, const std::string& lc, const std::string& rc, const std::string& opname)
 {
-    if ((lc.find('<') != std::string::npos) || (rc.find('<') != std::string::npos)) {
-        // arguments of templated types
-        return nullptr;
+    std::string rc_type = type_remap(rc, lc);
+    std::string lc_type = type_remap(lc, rc);
+    bool is_templated = false;
+    if ((lc_type.find('<') != std::string::npos) ||
+        (rc_type.find('<') != std::string::npos)) {
+        is_templated = true;
     }
 
     std::vector<TCppScope_t> overloads;
@@ -1565,10 +1607,11 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
         Cpp::GetOperator(scope, Cpp::Operator::OP_Greater, overloads);
     else if (opname == ">=")
         Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterEqual, overloads);
-    else if (opname == "==")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
-    else if (opname == "!=")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
+    // FIXME: enabling `==` and `!=` requires friend operators
+    // else if (opname == "==")
+    //     Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
+    // else if (opname == "!=")
+    //     Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
     else if (opname == "<<")
         Cpp::GetOperator(scope, Cpp::Operator::OP_LessLess, overloads);
     else if (opname == ">>")
@@ -1578,25 +1621,51 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     else if (opname == "|")
         Cpp::GetOperator(scope, Cpp::Operator::OP_Pipe, overloads);
 
+    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     for (auto overload: overloads) {
-        if (Cpp::IsTemplatedFunction(overload))
+        if (Cpp::IsTemplatedFunction(overload)) {
+            unresolved_candidate_methods.push_back(overload);
             continue;
-
-        TCppType_t lhs_type = Cpp::GetFunctionArgType(overload, 0);
-        if (lc != Cpp::GetTypeAsString(Cpp::GetUnderlyingType(lhs_type)))
-            continue;
-
-        if ((!rc.empty()) && (Cpp::GetFunctionNumArgs(overload) == 2)) {
-            TCppType_t rhs_type = Cpp::GetFunctionArgType(overload, 1);
-            if (rc != Cpp::GetTypeAsString(Cpp::GetUnderlyingType(rhs_type)))
-                continue;
         } else {
-            continue;
+            TCppType_t lhs_type = Cpp::GetFunctionArgType(overload, 0);
+            if (lc_type !=
+                Cpp::GetTypeAsString(Cpp::GetUnderlyingType(lhs_type)))
+                continue;
+
+            if (!rc_type.empty()) {
+                if (Cpp::GetFunctionNumArgs(overload) != 2)
+                    continue;
+                TCppType_t rhs_type = Cpp::GetFunctionArgType(overload, 1);
+                if (rc_type !=
+                    Cpp::GetTypeAsString(Cpp::GetUnderlyingType(rhs_type)))
+                    continue;
+            }
+            return overload;
         }
-
-        return overload;
     }
+    if (is_templated) {
+        std::string lc_template = lc_type.substr(
+            lc_type.find("<") + 1, lc_type.rfind(">") - lc_type.find("<") - 1);
+        std::string rc_template = rc_type.substr(
+            rc_type.find("<") + 1, rc_type.rfind(">") - rc_type.find("<") - 1);
 
+        std::vector<Cpp::TemplateArgInfo> arg_types;
+        if (auto l = Cppyy::GetType(lc_type, true))
+            arg_types.emplace_back(l);
+        else
+            return nullptr;
+
+        if (!rc_type.empty()) {
+            if (auto r = Cppyy::GetType(rc_type, true))
+                arg_types.emplace_back(r);
+            else
+                return nullptr;
+        }
+        Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(
+            unresolved_candidate_methods, {}, arg_types);
+        if (cppmeth)
+            return cppmeth;
+    }
     return nullptr;
 }
 
