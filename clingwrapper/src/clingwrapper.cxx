@@ -233,10 +233,12 @@ public:
 
         // load frequently used headers
         const char* code =
+               "#include <algorithm>\n"
                "#include <iostream>\n"
                "#include <string.h>\n" // for strcpy
                "#include <string>\n"
             //    "#include <DllImport.h>\n"     // defines R__EXTERN
+               "#include <complex>\n"
                "#include <vector>\n"
                "#include <utility>\n"
                "#include <memory>\n"
@@ -468,15 +470,20 @@ bool Cppyy::IsFunctionPointerType(TCppType_t type) {
 }
 
 // returns true if no new type was added.
-bool Cppyy::AppendTypesSlow(const std::string &name,
-                            std::vector<Cpp::TemplateArgInfo>& types) {
+bool Cppyy::AppendTypesSlow(const std::string& name,
+                            std::vector<Cpp::TemplateArgInfo>& types,
+                            bool no_reference) {
 
   // Add no new type if string is empty
   if (name.empty()) return true;
 
   // Try going via Cppyy::GetType first.
   if (Cppyy::TCppType_t type = GetType(name, /*enable_slow_lookup=*/true)) {
-    types.push_back(type);
+    if (no_reference)
+      types.push_back(
+          Cpp::IsReferenceType(type) ? Cpp::GetNonReferenceType(type) : type);
+    else
+      types.push_back(type);
     return false;
   }
   // Else, we might have an entire expression such as int, double.
@@ -492,6 +499,11 @@ bool Cppyy::AppendTypesSlow(const std::string &name,
     TCppScope_t instance_class = Cpp::GetScopeFromType(varN);
     size_t oldSize = types.size();
     Cpp::GetClassTemplateInstantiationArgs(instance_class, types);
+    if (no_reference)
+      for (size_t i = 0; i < types.size(); i++)
+        types[i].m_Type = Cpp::IsReferenceType(types[i].m_Type)
+                              ? Cpp::GetNonReferenceType(types[i].m_Type)
+                              : types[i].m_Type;
     return oldSize == types.size();
   }
   return true;
@@ -1508,16 +1520,14 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     // CPyCppyy assumes that we attempt instantiation here
     std::vector<Cpp::TemplateArgInfo> arg_types;
     std::vector<Cpp::TemplateArgInfo> templ_params;
-    Cppyy::AppendTypesSlow(proto, arg_types);
+    if (Cppyy::IsClass(scope))
+      Cppyy::AppendTypesSlow(proto, arg_types);
+    else
+      Cppyy::AppendTypesSlow(proto, arg_types, true);
     Cppyy::AppendTypesSlow(explicit_params, templ_params);
 
-    Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(unresolved_candidate_methods, templ_params, arg_types);
-    
-    if(!cppmeth){
-        return nullptr;
-    }
-
-    return cppmeth;
+    return Cpp::BestTemplateFunctionMatch(unresolved_candidate_methods,
+                                          templ_params, arg_types);
 
     // if it fails, use Sema to propogate info about why it failed (DeductionInfo)
 
