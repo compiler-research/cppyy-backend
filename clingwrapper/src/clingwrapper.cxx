@@ -233,6 +233,8 @@ public:
 
         // load frequently used headers
         const char* code =
+               "#include <algorithm>\n"
+               "#include <complex>\n"
                "#include <iostream>\n"
                "#include <string.h>\n" // for strcpy
                "#include <string>\n"
@@ -1511,11 +1513,16 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     Cppyy::AppendTypesSlow(proto, arg_types);
     Cppyy::AppendTypesSlow(explicit_params, templ_params);
 
-    Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(unresolved_candidate_methods, templ_params, arg_types);
-    
-    if(!cppmeth){
-        return nullptr;
-    }
+    Cppyy::TCppMethod_t cppmeth = nullptr;
+
+    if (unresolved_candidate_methods.size() == 1 && !templ_params.empty())
+      cppmeth =
+          Cpp::InstantiateTemplate(unresolved_candidate_methods[0],
+                                   templ_params.data(), templ_params.size());
+
+    if (!cppmeth)
+      cppmeth = Cpp::BestOverloadFunctionMatch(unresolved_candidate_methods,
+                                               templ_params, arg_types);
 
     return cppmeth;
 
