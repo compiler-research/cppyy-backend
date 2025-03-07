@@ -1429,6 +1429,11 @@ bool Cppyy::IsConstMethod(TCppMethod_t method)
     return Cpp::IsConstMethod(method);
 }
 
+void Cppyy::GetTemplatedMethods(TCppScope_t scope, std::vector<Cppyy::TCppMethod_t> &methods)
+{
+    Cpp::GetFunctionTemplatedDecls(scope, methods);
+}
+
 Cppyy::TCppIndex_t Cppyy::GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace)
 {
     std::vector<Cppyy::TCppMethod_t> mc;
@@ -1446,21 +1451,6 @@ std::string Cppyy::GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth)
     return "";
 }
 
-//
-// bool Cppyy::IsTemplatedConstructor(TCppScope_t scope, TCppIndex_t imeth)
-// {
-//     if (scope == (TCppScope_t)GLOBAL_HANDLE)
-//         return false;
-//
-//     TClassRef& cr = type_from_handle(scope);
-//     if (cr.GetClass()) {
-//         TFunctionTemplate* f = (TFunctionTemplate*)cr->GetListOfFunctionTemplates(false)->At((int)imeth);
-//         return f->ExtraProperty() & kIsConstructor;
-//     }
-//
-//     return false;
-// }
-//
 bool Cppyy::ExistsMethodTemplate(TCppScope_t scope, const std::string& name)
 {
     return Cpp::ExistsFunctionTemplate(name, scope);
