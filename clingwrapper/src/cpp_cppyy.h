@@ -300,13 +300,13 @@ namespace Cppyy {
     std::string GetMethodPrototype(TCppMethod_t, bool show_formal_args);
     RPY_EXPORTED
     bool        IsConstMethod(TCppMethod_t);
-
+// // Templated method/function reflection information ------------------------------------
+    RPY_EXPORTED
+    void GetTemplatedMethods(TCppScope_t scope, std::vector<TCppMethod_t> &methods);
     RPY_EXPORTED
     TCppIndex_t GetNumTemplatedMethods(TCppScope_t scope, bool accept_namespace = false);
     RPY_EXPORTED
     std::string GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth);
-    RPY_EXPORTED
-    bool        IsTemplatedConstructor(TCppScope_t scope, TCppIndex_t imeth) { assert(0 && "IsTemplatedConstructor"); return 0; }
     RPY_EXPORTED
     bool        ExistsMethodTemplate(TCppScope_t scope, const std::string& name);
     RPY_EXPORTED
