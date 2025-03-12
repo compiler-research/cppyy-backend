@@ -1662,7 +1662,7 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
             else
                 return nullptr;
         }
-        Cppyy::TCppMethod_t cppmeth = Cpp::BestTemplateFunctionMatch(
+        Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
             unresolved_candidate_methods, {}, arg_types);
         if (cppmeth)
             return cppmeth;
