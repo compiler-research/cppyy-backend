@@ -1367,33 +1367,58 @@ std::string Cppyy::GetMethodArgDefault(TCppMethod_t method, TCppIndex_t iarg)
     return Cpp::GetFunctionArgDefault(method, iarg);
 }
 
+static inline Cppyy::TCppIndex_t ArgSimilarityScore(Cppyy::TCppType_t argqtp,
+                                                    Cppyy::TCppType_t reqqtp) {
+  // This scoring is not based on any particular rules
+  if (Cpp::IsSameType(argqtp, reqqtp))
+    return 0; // Best match
+  else if ((Cpp::IsSignedIntegerType(argqtp) &&
+            Cpp::IsSignedIntegerType(reqqtp)) ||
+           (Cpp::IsUnsignedIntegerType(argqtp) &&
+            Cpp::IsUnsignedIntegerType(reqqtp)) ||
+           (Cpp::IsFloatingType(argqtp) && Cpp::IsFloatingType(reqqtp)))
+    return 1;
+  else if ((Cpp::IsSignedIntegerType(argqtp) &&
+            Cpp::IsUnsignedIntegerType(reqqtp)) ||
+           (Cpp::IsFloatingType(argqtp) && Cpp::IsUnsignedIntegerType(reqqtp)))
+    return 2;
+  else if ((Cpp::IsIntegerType(argqtp) && Cpp::IsIntegerType(reqqtp)))
+    return 3;
+  else if ((Cpp::IsIntegralType(argqtp) && Cpp::IsIntegralType(reqqtp)))
+    return 4;
+  else if ((Cpp::IsVoidPointerType(argqtp) && Cpp::IsPointerType(reqqtp)))
+    return 5;
+  else
+    return 10; // Penalize heavily for no possible match
+}
+
 Cppyy::TCppIndex_t Cppyy::CompareMethodArgType(TCppMethod_t method, TCppIndex_t iarg, const std::string &req_type)
 {
-    // if (method) {
-    //     TFunction* f = m2f(method);
-    //     TMethodArg* arg = (TMethodArg *)f->GetListOfMethodArgs()->At((int)iarg);
-    //     void *argqtp = gInterpreter->TypeInfo_QualTypePtr(arg->GetTypeInfo());
+  if (method) {
+    Cppyy::TCppType_t type_a = GetMethodArgType(method, iarg);
+    Cppyy::TCppType_t type_b = GetType(req_type);
 
-    //     TypeInfo_t *reqti = gInterpreter->TypeInfo_Factory(req_type.c_str());
-    //     void *reqqtp = gInterpreter->TypeInfo_QualTypePtr(reqti);
+    if (ArgSimilarityScore(type_a, type_b) < 10) {
+      return ArgSimilarityScore(type_a, type_b);
+    } else { // Match using underlying types
+      if (Cpp::IsPointerType(type_a))
+        type_a = Cpp::GetPointeeType(type_a);
 
-    //     if (ArgSimilarityScore(argqtp, reqqtp) < 10) {
-    //         return ArgSimilarityScore(argqtp, reqqtp);
-    //     }
-    //     else { // Match using underlying types
-    //         if(gInterpreter->IsPointerType(argqtp))
-    //             argqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetPointerType(argqtp));
-
-    //         // Handles reference types and strips qualifiers
-    //         TypeInfo_t *arg_ul = gInterpreter->GetNonReferenceType(argqtp);
-    //         TypeInfo_t *req_ul = gInterpreter->GetNonReferenceType(reqqtp);
-    //         argqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetUnqualifiedType(gInterpreter->TypeInfo_QualTypePtr(arg_ul)));
-    //         reqqtp = gInterpreter->TypeInfo_QualTypePtr(gInterpreter->GetUnqualifiedType(gInterpreter->TypeInfo_QualTypePtr(req_ul)));
-
-    //         return ArgSimilarityScore(argqtp, reqqtp);
-    //     }
-    // }
-    return 0; // Method is not valid
+      if (ArgSimilarityScore(type_a, type_b) > 10) {
+        // Handles reference types and strips qualifiers
+        type_a = Cpp::GetNonReferenceType(type_a);
+        type_b = Cpp::GetNonReferenceType(type_b);
+        if (ArgSimilarityScore(type_a, type_b) > 10) {
+          type_a = Cpp::GetUnqualifiedType(type_a);
+          type_b = Cpp::GetUnqualifiedType(type_b);
+          return (bool)ArgSimilarityScore(type_a, type_b) < 10;
+        }
+        return ArgSimilarityScore(type_a, type_b);
+      }
+      return ArgSimilarityScore(type_a, type_b);
+    }
+  }
+  return 100; // Method is not valid
 }
 
 std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args, TCppIndex_t max_args)
