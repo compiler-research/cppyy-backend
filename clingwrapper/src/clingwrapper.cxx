@@ -1463,23 +1463,6 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
     return Cpp::IsTemplatedFunction(method);
 }
 
-// // helpers for Cppyy::GetMethodTemplate()
-// static std::map<TDictionary::DeclId_t, CallWrapper*> gMethodTemplates;
-//
-// static inline
-// void remove_space(std::string& n) {
-//    std::string::iterator pos = std::remove_if(n.begin(), n.end(), isspace);
-//    n.erase(pos, n.end());
-// }
-//
-// static inline
-// bool template_compare(std::string n1, std::string n2) {
-//     if (n1.back() == '>') n1 = n1.substr(0, n1.size()-1);
-//     remove_space(n1);
-//     remove_space(n2);
-//     return n2.compare(0, n1.size(), n1) == 0;
-// }
-//
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
@@ -1510,16 +1493,14 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     Cppyy::AppendTypesSlow(proto, arg_types);
     Cppyy::AppendTypesSlow(explicit_params, templ_params);
 
-    Cppyy::TCppMethod_t cppmeth = nullptr;
+    Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
+        unresolved_candidate_methods, templ_params, arg_types);
 
-    if (unresolved_candidate_methods.size() == 1 && !templ_params.empty())
+    if (!cppmeth && unresolved_candidate_methods.size() == 1 &&
+        !templ_params.empty())
       cppmeth =
           Cpp::InstantiateTemplate(unresolved_candidate_methods[0],
                                    templ_params.data(), templ_params.size());
-
-    if (!cppmeth)
-      cppmeth = Cpp::BestOverloadFunctionMatch(unresolved_candidate_methods,
-                                               templ_params, arg_types);
 
     return cppmeth;
 
