@@ -362,13 +362,15 @@ std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 }
 
 // // name to opaque C++ scope representation -----------------------------------
-std::string Cppyy::ResolveName(const std::string& cppitem_name)
-{
-#ifdef PRINT_DEBUG
-    printf("Resolve name input = %s\n", cppitem_name.c_str());
-#endif
-    return cppitem_name;
-
+std::string Cppyy::ResolveName(const std::string& name) {
+  if (!name.empty()) {
+    if (Cppyy::TCppType_t type =
+            Cppyy::GetType(name, /*enable_slow_lookup=*/true))
+      return Cppyy::GetTypeAsString(Cppyy::ResolveType(type));
+    return name;
+  }
+  return "";
+}
 // // Fully resolve the given name to the final type name.
 //
 // // try memoized type cache, in case seen before
@@ -443,7 +445,7 @@ std::string Cppyy::ResolveName(const std::string& cppitem_name)
 //     if (tclean.compare(0, 6, "const ") != 0)
 //         return TClassEdit::ShortType(tclean.c_str(), 2);
 //     return "const " + TClassEdit::ShortType(tclean.c_str(), 2);
-}
+// }
 
 
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
