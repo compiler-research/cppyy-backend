@@ -362,13 +362,17 @@ std::string Cppyy::ToString(TCppType_t klass, TCppObject_t obj)
 }
 
 // // name to opaque C++ scope representation -----------------------------------
-std::string Cppyy::ResolveName(const std::string& cppitem_name)
+std::string Cppyy::ResolveName(const std::string& name)
 {
-#ifdef PRINT_DEBUG
-    printf("Resolve name input = %s\n", cppitem_name.c_str());
-#endif
-    return cppitem_name;
-
+    if (!name.empty()) {
+      Cppyy::TCppType_t type = Cppyy::GetType(name, true);
+      if (type) {
+        return Cppyy::GetTypeAsString(Cppyy::ResolveType(type));
+      }
+      return name;
+    }
+    return "";
+}
 // // Fully resolve the given name to the final type name.
 //
 // // try memoized type cache, in case seen before
@@ -443,7 +447,7 @@ std::string Cppyy::ResolveName(const std::string& cppitem_name)
 //     if (tclean.compare(0, 6, "const ") != 0)
 //         return TClassEdit::ShortType(tclean.c_str(), 2);
 //     return "const " + TClassEdit::ShortType(tclean.c_str(), 2);
-}
+// }
 
 
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
@@ -1461,23 +1465,6 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
     return Cpp::IsTemplatedFunction(method);
 }
 
-// // helpers for Cppyy::GetMethodTemplate()
-// static std::map<TDictionary::DeclId_t, CallWrapper*> gMethodTemplates;
-//
-// static inline
-// void remove_space(std::string& n) {
-//    std::string::iterator pos = std::remove_if(n.begin(), n.end(), isspace);
-//    n.erase(pos, n.end());
-// }
-//
-// static inline
-// bool template_compare(std::string n1, std::string n2) {
-//     if (n1.back() == '>') n1 = n1.substr(0, n1.size()-1);
-//     remove_space(n1);
-//     remove_space(n2);
-//     return n2.compare(0, n1.size(), n1) == 0;
-// }
-//
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
@@ -1508,16 +1495,14 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     Cppyy::AppendTypesSlow(proto, arg_types);
     Cppyy::AppendTypesSlow(explicit_params, templ_params);
 
-    Cppyy::TCppMethod_t cppmeth = nullptr;
+    Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
+        unresolved_candidate_methods, templ_params, arg_types);
 
-    if (unresolved_candidate_methods.size() == 1 && !templ_params.empty())
+    if (!cppmeth && unresolved_candidate_methods.size() == 1 &&
+        !templ_params.empty())
       cppmeth =
           Cpp::InstantiateTemplate(unresolved_candidate_methods[0],
                                    templ_params.data(), templ_params.size());
-
-    if (!cppmeth)
-      cppmeth = Cpp::BestOverloadFunctionMatch(unresolved_candidate_methods,
-                                               templ_params, arg_types);
 
     return cppmeth;
 
