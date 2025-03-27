@@ -1,4 +1,4 @@
-#ifndef WIN32
+#ifndef _WIN32
 #ifndef _CRT_SECURE_NO_WARNINGS
 // silence warnings about getenv, strncpy, etc.
 #define _CRT_SECURE_NO_WARNINGS
@@ -10,7 +10,9 @@
 #include "cpp_cppyy.h"
 #include "callcontext.h"
 
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 
 // Standard
 #include <assert.h>
