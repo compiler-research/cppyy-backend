@@ -559,6 +559,10 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   }
 
   // We split each individual types based on , and resolve it
+  // FIXME: see discussion on should we support template instantiation with string:
+  //   https://github.com/compiler-research/cppyy-backend/pull/137#discussion_r2079357491
+  //   We should consider eliminating the `split_comma_saparated_types` and `is_integral`
+  //   string parsing.
   std::vector<std::string> individual_types;
   if (!split_comma_saparated_types(name, individual_types))
     return true;
