@@ -28,6 +28,7 @@
 #include <string.h>
 #include <typeinfo>
 #include <iostream>
+#include <vector>
 
 
 // temp
@@ -161,6 +162,15 @@ void push_tokens_from_string(char *s, std::vector <const char*> &tokens) {
         tokens.push_back(token);
         token = strtok(NULL, " ");
     }
+}
+
+static inline
+bool is_integral(std::string& s)
+{
+    if (s == "false") { s = "0"; return true; }
+    else if (s == "true") { s = "1"; return true; }
+    return !s.empty() && std::find_if(s.begin(), 
+        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
 class ApplicationStarter {
@@ -473,19 +483,66 @@ bool Cppyy::IsFunctionPointerType(TCppType_t type) {
     return Cpp::IsFunctionPointerType(type);
 }
 
+std::string trim(const std::string& line)
+{
+    if (line.empty()) return "";
+    const char* WhiteSpace = " \t\v\r\n";
+    std::size_t start = line.find_first_not_of(WhiteSpace);
+    std::size_t end = line.find_last_not_of(WhiteSpace);
+    return line.substr(start, end - start + 1);
+}
+
+// returns false of angular brackets dont match, else true
+bool split_comma_saparated_types(const std::string& name,
+                                 std::vector<std::string>& types) {
+  std::string trimed_name = trim(name);
+  size_t start_pos = 0;
+  size_t end_pos = 0;
+  size_t appended_count = 0;
+  int matching_angular_brackets = 0;
+  while (end_pos < trimed_name.size()) {
+    switch (trimed_name[end_pos]) {
+    case ',': {
+      if (!matching_angular_brackets) {
+        types.push_back(
+            trim(trimed_name.substr(start_pos, end_pos - start_pos)));
+        start_pos = end_pos + 1;
+      }
+      break;
+    }
+    case '<': {
+      matching_angular_brackets++;
+      break;
+    }
+    case '>': {
+      if (matching_angular_brackets == 1) {
+        types.push_back(
+            trim(trimed_name.substr(start_pos, end_pos - start_pos + 1)));
+        start_pos = end_pos + 1;
+      } else if (matching_angular_brackets < 1) {
+        types.clear();
+        return false;
+      }
+      matching_angular_brackets--;
+      break;
+    }
+    }
+    end_pos++;
+  }
+  if (start_pos < trimed_name.size())
+    types.push_back(trim(trimed_name.substr(start_pos, end_pos - start_pos)));
+  return true;
+}
+
 // returns true if no new type was added.
-bool Cppyy::AppendTypesSlow(const std::string &name,
+bool Cppyy::AppendTypesSlow(const std::string& name,
                             std::vector<Cpp::TemplateArgInfo>& types) {
 
   // Add no new type if string is empty
-  if (name.empty()) return true;
+  if (name.empty())
+    return true;
 
-  // Try going via Cppyy::GetType first.
-  if (Cppyy::TCppType_t type = GetType(name, /*enable_slow_lookup=*/true)) {
-    types.push_back(type);
-    return false;
-  }
-  // Else, we might have an entire expression such as int, double.
+  // We might have an entire expression such as int, double.
   static unsigned long long struct_count = 0;
   std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
   if (!struct_count)
@@ -500,7 +557,29 @@ bool Cppyy::AppendTypesSlow(const std::string &name,
     Cpp::GetClassTemplateInstantiationArgs(instance_class, types);
     return oldSize == types.size();
   }
-  return true;
+
+  // We split each individual types based on , and resolve it
+  // FIXME: see discussion on should we support template instantiation with string:
+  //   https://github.com/compiler-research/cppyy-backend/pull/137#discussion_r2079357491
+  //   We should consider eliminating the `split_comma_saparated_types` and `is_integral`
+  //   string parsing.
+  std::vector<std::string> individual_types;
+  if (!split_comma_saparated_types(name, individual_types))
+    return true;
+
+  for (std::string& i : individual_types) {
+    // Try going via Cppyy::GetType first.
+    if (Cppyy::TCppType_t type = GetType(i, /*enable_slow_lookup=*/true)) {
+      const char* integral_value = nullptr;
+      if (is_integral(i))
+        integral_value = strdup(i.c_str());
+      types.emplace_back(type, integral_value);
+    } else {
+      types.clear();
+      return true;
+    }
+  }
+  return false;
 }
 
 Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_lookup /* = false */) {
