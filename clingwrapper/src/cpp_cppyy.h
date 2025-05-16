@@ -119,7 +119,7 @@ namespace Cppyy {
     RPY_EXPORTED
     size_t      SizeOfType(TCppType_t type);
     RPY_EXPORTED
-    size_t      SizeOf(const std::string &type) { assert(0 && "SizeOf"); return 0; }
+    size_t      SizeOf(const std::string &type);
 
     RPY_EXPORTED
     bool        IsBuiltin(const std::string& type_name);
