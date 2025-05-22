@@ -1266,37 +1266,41 @@ bool Cppyy::IsSubclass(TCppScope_t derived, TCppScope_t base)
     return Cpp::IsSubclass(derived, base);
 }
 
+static std::set<std::string> gSmartPtrTypes =
+    {"std::auto_ptr", "std::shared_ptr", "std::unique_ptr", "std::weak_ptr"};
+
 bool Cppyy::IsSmartPtr(TCppScope_t klass)
 {
-    return Cpp::IsSmartPtrType(Cpp::GetTypeFromScope(klass));
+    const std::string& rn = Cppyy::GetScopedFinalName(klass);
+    if (gSmartPtrTypes.find(rn.substr(0, rn.find("<"))) != gSmartPtrTypes.end())
+        return true;
+    return false;
 }
 
-// bool Cppyy::GetSmartPtrInfo(
-//     const std::string& tname, TCppType_t* raw, TCppMethod_t* deref)
-// {
-//     const std::string& rn = ResolveName(tname);
-//     if (gSmartPtrTypes.find(rn.substr(0, rn.find("<"))) != gSmartPtrTypes.end()) {
-//         if (!raw && !deref) return true;
-//
-//         TClassRef& cr = type_from_handle(GetScope(tname));
-//         if (cr.GetClass()) {
-//             TFunction* func = cr->GetMethod("operator->", "");
-//             if (!func) {
-//                 gInterpreter->UpdateListOfMethods(cr.GetClass());
-//                 func = cr->GetMethod("operator->", "");
-//             }
-//             if (func) {
-//                if (deref) *deref = (TCppMethod_t)new_CallWrapper(func);
-//                if (raw) *raw = GetScope(TClassEdit::ShortType(
-//                    func->GetReturnTypeNormalizedName().c_str(), 1));
-//                return (!deref || *deref) && (!raw || *raw);
-//             }
-//         }
-//     }
-//
-//     return false;
-// }
-//
+bool Cppyy::GetSmartPtrInfo(
+    const std::string& tname, TCppScope_t* raw, TCppMethod_t* deref)
+{
+    // TODO: We can directly accept scope instead of name
+    const std::string& rn = ResolveName(tname);
+    if (gSmartPtrTypes.find(rn.substr(0, rn.find("<"))) == gSmartPtrTypes.end())
+        return false;
+
+    if (!raw && !deref) return true;
+
+    TCppScope_t scope = Cppyy::GetScope(rn);
+    if (!scope)
+        return false;
+
+    std::vector<TCppMethod_t> ops;
+    Cpp::GetOperator(scope, Cpp::OP_Arrow, ops);
+    if (ops.size() != 1)
+        return false;
+
+    if (deref) *deref = ops[0];
+    if (raw) *raw = Cppyy::GetScopeFromType(Cpp::GetFunctionReturnType(ops[0]));
+    return (!deref || *deref) && (!raw || *raw);
+}
+
 // void Cppyy::AddSmartPtrType(const std::string& type_name)
 // {
 //     gSmartPtrTypes.insert(ResolveName(type_name));
