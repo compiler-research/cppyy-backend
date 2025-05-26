@@ -784,7 +784,7 @@ bool Cppyy::IsBuiltin(const std::string& type_name)
         "unsigned short", "int", "unsigned int", "long", "unsigned long",
         "long long", "unsigned long long", "float", "double", "long double",
         "void"};
-     if (s_builtins.find(type_name) != s_builtins.end())
+     if (s_builtins.find(trim(type_name)) != s_builtins.end())
          return true;
 
     if (strstr(type_name.c_str(), "std::complex"))
