@@ -1602,12 +1602,12 @@ static inline std::string type_remap(const std::string& n1,
     // since C++ does not have a operator+(std::string, std::wstring), we'll
     // have to look up the same type and rely on the converters in
     // CPyCppyy/_cppyy.
-    if (n1 == "str" || n1 == "unicode") {
-        // if (n2 ==
-        // "std::basic_string<wchar_t,std::char_traits<wchar_t>,std::allocator<wchar_t>
-        // >")
-        //     return n2;                      // match like for like
-        return "std::string"; // probably best bet
+    if (n1 == "str" || n1 == "unicode" || n1 == "std::basic_string<char>") {
+        if (n2 == "std::basic_string<wchar_t>")
+            return "std::basic_string<wchar_t>&";                      // match like for like
+        return "std::basic_string<char>&"; // probably best bet
+    } else if (n1 == "std::basic_string<wchar_t>") {
+        return "std::basic_string<wchar_t>&";
     } else if (n1 == "float") {
         return "double"; // debatable, but probably intended
     } else if (n1 == "complex") {
@@ -1678,11 +1678,10 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
         Cpp::GetOperator(scope, Cpp::Operator::OP_Greater, overloads);
     else if (opname == ">=")
         Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterEqual, overloads);
-    // FIXME: enabling `==` and `!=` requires friend operators
-    // else if (opname == "==")
-    //     Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
-    // else if (opname == "!=")
-    //     Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
+    else if (opname == "==")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
+    else if (opname == "!=")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
     else if (opname == "<<")
         Cpp::GetOperator(scope, Cpp::Operator::OP_LessLess, overloads);
     else if (opname == ">>")
