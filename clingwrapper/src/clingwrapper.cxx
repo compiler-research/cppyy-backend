@@ -246,6 +246,7 @@ public:
         // load frequently used headers
         const char* code =
                "#include <algorithm>\n"
+               "#include <numeric>\n"
                "#include <complex>\n"
                "#include <iostream>\n"
                "#include <string.h>\n" // for strcpy
@@ -1735,6 +1736,20 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
             unresolved_candidate_methods, {}, arg_types);
         if (cppmeth)
             return cppmeth;
+    }
+    {
+        // we are trying to do a madeup IntegralToFloating implicit cast emulating clang
+        bool flag = false;
+        if (rc_type == "int") {
+            rc_type = "double";
+            flag = true;
+        }
+        if (lc_type == "int") {
+            lc_type = "double";
+            flag = true;
+        }
+        if (flag)
+            return GetGlobalOperator(scope, lc_type, rc_type, opname);
     }
     return nullptr;
 }
