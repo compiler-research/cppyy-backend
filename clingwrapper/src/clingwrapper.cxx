@@ -460,6 +460,17 @@ std::string Cppyy::ResolveName(const std::string& name) {
 //     return "const " + TClassEdit::ShortType(tclean.c_str(), 2);
 // }
 
+Cppyy::TCppType_t Cppyy::ResolveEnumReferenceType(TCppType_t type) {
+    if (!Cpp::IsLValueReferenceType(type))
+        return type;
+
+    TCppType_t nonReferenceType = Cpp::GetNonReferenceType(type);
+    if (Cpp::IsEnumType(nonReferenceType)) {
+        TCppType_t underlying_type =  Cpp::GetIntegerTypeFromEnumType(nonReferenceType);
+        return Cpp::GetReferencedType(underlying_type);
+    }
+    return type;
+}
 
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     Cppyy::TCppType_t canonType = Cpp::GetCanonicalType(type);
