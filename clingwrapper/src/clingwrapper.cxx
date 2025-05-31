@@ -245,30 +245,31 @@ public:
 
         // load frequently used headers
         const char* code =
-               "#include <algorithm>\n"
-               "#include <numeric>\n"
-               "#include <complex>\n"
-               "#include <iostream>\n"
-               "#include <string.h>\n" // for strcpy
-               "#include <string>\n"
+            "#include <algorithm>\n"
+            "#include <numeric>\n"
+            "#include <complex>\n"
+            "#include <iostream>\n"
+            "#include <string.h>\n" // for strcpy
+            "#include <string>\n"
             //    "#include <DllImport.h>\n"     // defines R__EXTERN
-               "#include <vector>\n"
-               "#include <utility>\n"
-               "#include <memory>\n"
-               "#include <functional>\n" // for the dispatcher code to use std::function
-               "#include <map>\n" // FIXME: Replace with modules
-               "#include <sstream>\n" // FIXME: Replace with modules
-               "#include <array>\n" // FIXME: Replace with modules
-               "#include <list>\n" // FIXME: Replace with modules
-               "#include <deque>\n" // FIXME: Replace with modules
-               "#include <tuple>\n" // FIXME: Replace with modules
-               "#include <set>\n" // FIXME: Replace with modules
-               "#include <chrono>\n" // FIXME: Replace with modules
-               "#include <cmath>\n" // FIXME: Replace with modules
-               "#if __has_include(<optional>)\n"
-                   "#include <optional>\n"
-               "#endif\n"
-               "#include \"clang/Interpreter/CppInterOp.h\"";
+            "#include <vector>\n"
+            "#include <utility>\n"
+            "#include <memory>\n"
+            "#include <functional>\n" // for the dispatcher code to use
+                                      // std::function
+            "#include <map>\n"        // FIXME: Replace with modules
+            "#include <sstream>\n"    // FIXME: Replace with modules
+            "#include <array>\n"      // FIXME: Replace with modules
+            "#include <list>\n"       // FIXME: Replace with modules
+            "#include <deque>\n"      // FIXME: Replace with modules
+            "#include <tuple>\n"      // FIXME: Replace with modules
+            "#include <set>\n"        // FIXME: Replace with modules
+            "#include <chrono>\n"     // FIXME: Replace with modules
+            "#include <cmath>\n"      // FIXME: Replace with modules
+            "#if __has_include(<optional>)\n"
+            "#include <optional>\n"
+            "#endif\n"
+            "#include \"CppInterOp/CppInterOp.h\"";
         Cpp::Process(code);
 
     // create helpers for comparing thingies

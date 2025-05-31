@@ -14,7 +14,7 @@
 
 // #include "TCling.h"
 
-#include "clang/Interpreter/CppInterOp.h"
+#include <CppInterOp/CppInterOp.h>
 
 // some more types; assumes Cppyy.h follows Python.h
 #ifndef PY_LONG_LONG
