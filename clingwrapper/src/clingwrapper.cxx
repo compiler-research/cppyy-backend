@@ -491,6 +491,10 @@ bool Cppyy::IsClassType(TCppType_t type) {
     return Cpp::IsRecordType(type);
 }
 
+bool Cppyy::IsPointerType(TCppType_t type) {
+    return Cpp::IsPointerType(type);
+}
+
 bool Cppyy::IsFunctionPointerType(TCppType_t type) {
     return Cpp::IsFunctionPointerType(type);
 }
