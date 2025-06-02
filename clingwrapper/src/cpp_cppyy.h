@@ -86,6 +86,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsClassType(TCppType_t type);
     RPY_EXPORTED
+    bool IsPointerType(TCppType_t type);
+    RPY_EXPORTED
     bool IsFunctionPointerType(TCppType_t type);
     RPY_EXPORTED
     TCppType_t GetType(const std::string &name, bool enable_slow_lookup = false);
