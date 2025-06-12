@@ -1586,7 +1586,7 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     Cpp::GetClassTemplatedMethods(pureName, scope,
                                   unresolved_candidate_methods);
-    if (unresolved_candidate_methods.empty()) {
+    if (unresolved_candidate_methods.empty() && name.find("operator") == 0) {
         // try operators
         Cppyy::GetClassOperators(scope, pureName, unresolved_candidate_methods);
     }
@@ -1636,38 +1636,8 @@ static inline std::string type_remap(const std::string& n1,
 void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
                               const std::string& opname,
                               std::vector<TCppScope_t>& operators) {
-    if (opname == "operator+")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Plus, operators);
-    else if (opname == "operator-")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Minus, operators);
-    else if (opname == "operator*")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Star, operators);
-    else if (opname == "operator/")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Slash, operators);
-    else if (opname == "operator<")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Less, operators);
-    else if (opname == "operator<=")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_LessEqual, operators);
-    else if (opname == "operator>")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Greater, operators);
-    else if (opname == "operator>=")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_GreaterEqual, operators);
-    else if (opname == "operator==")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_EqualEqual, operators);
-    else if (opname == "operator!=")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_ExclaimEqual, operators);
-    else if (opname == "operator<<")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_LessLess, operators);
-    else if (opname == "operator>>")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_GreaterGreater, operators);
-    else if (opname == "operator&")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Amp, operators);
-    else if (opname == "operator|")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Pipe, operators);
-    else if (opname == "operator()")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Call, operators);
-    else if (opname == "operator[]")
-        Cpp::GetOperator(klass, Cpp::Operator::OP_Subscript, operators);
+    std::string op = opname.substr(8);
+    Cpp::GetOperator(klass, Cpp::GetOperatorFromSpelling(op), operators);
 }
 
 Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
@@ -1682,39 +1652,7 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     }
 
     std::vector<TCppScope_t> overloads;
-    if (opname == "+")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Plus, overloads);
-    else if (opname == "-")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Minus, overloads);
-    else if (opname == "*")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Star, overloads);
-    else if (opname == "/")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Slash, overloads);
-    else if (opname == "<")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Less, overloads);
-    else if (opname == "<=")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_LessEqual, overloads);
-    else if (opname == ">")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Greater, overloads);
-    else if (opname == ">=")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterEqual, overloads);
-    else if (opname == "==")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_EqualEqual, overloads);
-    else if (opname == "!=")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_ExclaimEqual, overloads);
-    else if (opname == "<<")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_LessLess, overloads);
-    else if (opname == ">>")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_GreaterGreater, overloads);
-    else if (opname == "&")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Amp, overloads);
-    else if (opname == "|")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Pipe, overloads);
-    else if (opname == "()")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Call, overloads);
-    else if (opname == "[]")
-        Cpp::GetOperator(scope, Cpp::Operator::OP_Subscript, overloads);
-
+    Cpp::GetOperator(scope, Cpp::GetOperatorFromSpelling(opname), overloads);
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     for (auto overload: overloads) {
