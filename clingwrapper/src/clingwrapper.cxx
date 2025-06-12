@@ -879,37 +879,46 @@ void release_args(Parameter* args, size_t nargs) {
 //     return (!is_direct && wrap->fFaceptr.fGeneric) || (is_direct && wrap->fFaceptr.fDirect);
 // }
 
-static inline
-bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* self, void* result)
-{
-    Parameter* args = (Parameter*)args_;
-    bool is_direct = nargs & DIRECT_CALL;
-    nargs = CALL_NARGS(nargs);
+static inline bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs,
+                               void* args_, void* self, void* result) {
+  Parameter* args = (Parameter*)args_;
+  bool is_direct = nargs & DIRECT_CALL;
+  nargs = CALL_NARGS(nargs);
 
-    // if (!is_ready(wrap, is_direct))
-    //     return false;        // happens with compilation error
+  // if (!is_ready(wrap, is_direct))
+  //     return false;        // happens with compilation error
 
-    if (Cpp::JitCall JC = Cpp::MakeFunctionCallable(method)) {
-        bool runRelease = false;
-        //const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
-        if (nargs <= SMALL_ARGS_N) {
-            void* smallbuf[SMALL_ARGS_N];
-            if (nargs) runRelease = copy_args(args, nargs, smallbuf);
-            // CLING_CATCH_UNCAUGHT_
-            JC.Invoke(result, {smallbuf, nargs}, self);
-            // _CLING_CATCH_UNCAUGHT
-        } else {
-            std::vector<void*> buf(nargs);
-            runRelease = copy_args(args, nargs, buf.data());
-            // CLING_CATCH_UNCAUGHT_
-            JC.Invoke(result, {buf.data(), nargs}, self);
-            // _CLING_CATCH_UNCAUGHT
-        }
-        if (runRelease) release_args(args, nargs);
-        return true;
-    }
+  Cpp::JitCall JC = Cpp::MakeFunctionCallable(method);
 
+  if (!JC)
     return false;
+
+  bool runRelease = false;
+  // const auto& fgen = /* is_direct ? faceptr.fDirect : */ faceptr;
+
+  auto invokeHelper = [&](auto invoker) {
+    if (nargs <= SMALL_ARGS_N) {
+      void* smallbuf[SMALL_ARGS_N];
+      if (nargs)
+        runRelease = copy_args(args, nargs, smallbuf);
+      // CLING_CATCH_UNCAUGHT_
+      invoker(smallbuf, nargs);
+      // _CLING_CATCH_UNCAUGHT
+    } else {
+      std::vector<void*> buf(nargs);
+      runRelease = copy_args(args, nargs, buf.data());
+      // CLING_CATCH_UNCAUGHT_
+      invoker(buf.data(), nargs);
+      // _CLING_CATCH_UNCAUGHT
+    }
+  };
+
+  invokeHelper(
+      [&](void** buf, size_t count) { JC.Invoke(result, {buf, count}, self); });
+
+  if (runRelease)
+    release_args(args, nargs);
+  return true;
 }
 
 template<typename T>
