@@ -1652,11 +1652,10 @@ void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
         Cpp::GetOperator(klass, Cpp::Operator::OP_Greater, operators);
     else if (opname == "operator>=")
         Cpp::GetOperator(klass, Cpp::Operator::OP_GreaterEqual, operators);
-    // FIXME: enabling `==` and `!=` requires friend operators
-    // else if (opname == "operator==")
-    //     Cpp::GetOperator(klass, Cpp::Operator::OP_EqualEqual, operators);
-    // else if (opname == "operator!=")
-    //     Cpp::GetOperator(klass, Cpp::Operator::OP_ExclaimEqual, operators);
+    else if (opname == "operator==")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_EqualEqual, operators);
+    else if (opname == "operator!=")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_ExclaimEqual, operators);
     else if (opname == "operator<<")
         Cpp::GetOperator(klass, Cpp::Operator::OP_LessLess, operators);
     else if (opname == "operator>>")
@@ -1665,6 +1664,10 @@ void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
         Cpp::GetOperator(klass, Cpp::Operator::OP_Amp, operators);
     else if (opname == "operator|")
         Cpp::GetOperator(klass, Cpp::Operator::OP_Pipe, operators);
+    else if (opname == "operator()")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Call, operators);
+    else if (opname == "operator[]")
+        Cpp::GetOperator(klass, Cpp::Operator::OP_Subscript, operators);
 }
 
 Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
@@ -1707,6 +1710,11 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
         Cpp::GetOperator(scope, Cpp::Operator::OP_Amp, overloads);
     else if (opname == "|")
         Cpp::GetOperator(scope, Cpp::Operator::OP_Pipe, overloads);
+    else if (opname == "()")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Call, overloads);
+    else if (opname == "[]")
+        Cpp::GetOperator(scope, Cpp::Operator::OP_Subscript, overloads);
+
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     for (auto overload: overloads) {
