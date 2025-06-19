@@ -555,7 +555,7 @@ bool split_comma_saparated_types(const std::string& name,
 
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string& name,
-                            std::vector<Cpp::TemplateArgInfo>& types) {
+                            std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent) {
 
   // Add no new type if string is empty
   if (name.empty())
@@ -593,6 +593,17 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
       if (is_integral(i))
         integral_value = strdup(i.c_str());
       types.emplace_back(type, integral_value);
+    } else if (parent && (Cpp::IsNamespace(parent) || Cpp::IsClass(parent))) {
+        std::string qualified_name = Cpp::GetQualifiedCompleteName(parent) + "::" + name;
+        if (Cppyy::TCppType_t type = GetType(qualified_name, /*enable_slow_lookup=*/true)) {
+            const char* integral_value = nullptr;
+            if (is_integral(i))
+                integral_value = strdup(i.c_str());
+            types.emplace_back(type, integral_value);
+        } else {
+            types.clear();
+            return true;
+        }
     } else {
       types.clear();
       return true;
@@ -607,22 +618,16 @@ Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_looku
     if (auto type = Cpp::GetType(name))
         return type;
 
-    if (!enable_slow_lookup) {
-        if (name.find("::") != std::string::npos)
-            throw std::runtime_error("Calling Cppyy::GetType with qualified name '"
-                                + name + "'\n");
-        return nullptr;
-    }
-
-    // Here we might need to deal with integral types such as 3.14.
-
-    std::string id = "__Cppyy_GetType_" + std::to_string(var_count++);
-    std::string using_clause = "using " + id + " = __typeof__(" + name + ");\n";
-
-    if (!Cpp::Declare(using_clause.c_str(), /*silent=*/false)) {
-      TCppScope_t lookup = Cpp::GetNamed(id, 0);
-      TCppType_t lookup_ty = Cpp::GetTypeFromScope(lookup);
-      return Cpp::GetCanonicalType(lookup_ty);
+    if (enable_slow_lookup) {
+        // Here we might need to deal with integral types such as 3.14.
+        std::string id = "__Cppyy_GetType_" + std::to_string(var_count++);
+        std::string using_clause = "using " + id + " = __typeof__(" + name + ");\n";
+    
+        if (!Cpp::Declare(using_clause.c_str(), /*silent=*/false)) {
+          TCppScope_t lookup = Cpp::GetNamed(id, 0);
+          TCppType_t lookup_ty = Cpp::GetTypeFromScope(lookup);
+          return Cpp::GetCanonicalType(lookup_ty);
+        }
     }
     return nullptr;
 }
