@@ -588,25 +588,22 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
 
   for (std::string& i : individual_types) {
     // Try going via Cppyy::GetType first.
-    if (Cppyy::TCppType_t type = GetType(i, /*enable_slow_lookup=*/true)) {
-      const char* integral_value = nullptr;
-      if (is_integral(i))
-        integral_value = strdup(i.c_str());
-      types.emplace_back(type, integral_value);
-    } else if (parent && (Cpp::IsNamespace(parent) || Cpp::IsClass(parent))) {
-        if (Cppyy::TCppType_t type = Cppyy::GetTypeFromScope(Cppyy::GetNamed(name, parent))) {
-            const char* integral_value = nullptr;
-            if (is_integral(i))
-                integral_value = strdup(i.c_str());
-            types.emplace_back(type, integral_value);
-        } else {
-            types.clear();
-            return true;
-        }
-    } else {
+    const char* integral_value = nullptr;
+    Cppyy::TCppType_t type = nullptr;
+
+    type = GetType(i, /*enable_slow_lookup=*/true);
+    if (!type && parent && (Cpp::IsNamespace(parent) || Cpp::IsClass(parent))) {
+        type = Cppyy::GetTypeFromScope(Cppyy::GetNamed(name, parent));
+    }
+
+    if (!type) {
       types.clear();
       return true;
     }
+
+    if (is_integral(i))
+        integral_value = strdup(i.c_str());
+    types.emplace_back(type, integral_value);
   }
   return false;
 }
