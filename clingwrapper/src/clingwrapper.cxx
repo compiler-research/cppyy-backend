@@ -555,7 +555,7 @@ bool split_comma_saparated_types(const std::string& name,
 
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string& name,
-                            std::vector<Cpp::TemplateArgInfo>& types) {
+                            std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent) {
 
   // Add no new type if string is empty
   if (name.empty())
@@ -593,6 +593,16 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
       if (is_integral(i))
         integral_value = strdup(i.c_str());
       types.emplace_back(type, integral_value);
+    } else if (parent && (Cpp::IsNamespace(parent) || Cpp::IsClass(parent))) {
+        if (Cppyy::TCppType_t type = Cppyy::GetTypeFromScope(Cppyy::GetNamed(name, parent))) {
+            const char* integral_value = nullptr;
+            if (is_integral(i))
+                integral_value = strdup(i.c_str());
+            types.emplace_back(type, integral_value);
+        } else {
+            types.clear();
+            return true;
+        }
     } else {
       types.clear();
       return true;

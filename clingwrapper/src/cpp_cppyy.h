@@ -93,7 +93,7 @@ namespace Cppyy {
     TCppType_t GetType(const std::string &name, bool enable_slow_lookup = false);
     RPY_EXPORTED
     bool AppendTypesSlow(const std::string &name,
-                         std::vector<Cpp::TemplateArgInfo>& types);
+                         std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent = nullptr);
     RPY_EXPORTED
     TCppType_t GetComplexType(const std::string &element_type);
     RPY_EXPORTED
