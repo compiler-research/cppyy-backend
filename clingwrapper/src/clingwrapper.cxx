@@ -573,6 +573,19 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   if (name.empty())
     return true;
 
+  auto replace_all = [](std::string& str, const std::string& from, const std::string& to) {
+      if(from.empty())
+        return;
+      size_t start_pos = 0;
+      while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+  };
+
+  std::string resolved_name = name;
+  replace_all(resolved_name, "std::initializer_list<", "std::vector<"); // replace initializer_list with vector
+
   // We might have an entire expression such as int, double.
   static unsigned long long struct_count = 0;
   std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
@@ -581,7 +594,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
 
   std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   // FIXME: We cannot use silent because it erases our error code from Declare!
-  if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + name + "> " + var +";\n").c_str(), /*silent=*/false)) {
+  if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/false)) {
     TCppType_t varN = Cpp::GetVariableType(Cpp::GetNamed(var.c_str()));
     TCppScope_t instance_class = Cpp::GetScopeFromType(varN);
     size_t oldSize = types.size();
@@ -595,7 +608,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   //   We should consider eliminating the `split_comma_saparated_types` and `is_integral`
   //   string parsing.
   std::vector<std::string> individual_types;
-  if (!split_comma_saparated_types(name, individual_types))
+  if (!split_comma_saparated_types(resolved_name, individual_types))
     return true;
 
   for (std::string& i : individual_types) {
