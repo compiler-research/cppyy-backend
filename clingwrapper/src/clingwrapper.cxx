@@ -473,6 +473,18 @@ Cppyy::TCppType_t Cppyy::ResolveEnumReferenceType(TCppType_t type) {
     return type;
 }
 
+Cppyy::TCppType_t Cppyy::ResolveEnumPointerType(TCppType_t type) {
+    if (!Cpp::IsPointerType(type))
+        return type;
+
+    TCppType_t PointeeType = Cpp::GetPointeeType(type);
+    if (Cpp::IsEnumType(PointeeType)) {
+        TCppType_t underlying_type =  Cpp::GetIntegerTypeFromEnumType(PointeeType);
+        return Cpp::GetPointerType(underlying_type);
+    }
+    return type;
+}
+
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     Cppyy::TCppType_t canonType = Cpp::GetCanonicalType(type);
 
