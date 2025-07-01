@@ -1599,6 +1599,13 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
     return Cpp::IsTemplatedFunction(method);
 }
 
+bool Cppyy::IsStaticTemplate(TCppScope_t scope, const std::string& name)
+{
+    if (Cpp::TCppFunction_t tf = GetMethodTemplate(scope, name, ""))
+        return Cpp::IsStaticMethod(tf);
+    return false;
+}
+
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     TCppScope_t scope, const std::string& name, const std::string& proto)
 {
