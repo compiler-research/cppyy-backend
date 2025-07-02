@@ -84,6 +84,10 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t GetRealType(TCppType_t type);
     RPY_EXPORTED
+    TCppType_t GetPointerType(TCppType_t type);
+    RPY_EXPORTED
+    TCppType_t GetReferencedType(TCppType_t type, bool rvalue = false);
+    RPY_EXPORTED
     std::string ResolveEnum(TCppScope_t enum_scope);
     RPY_EXPORTED
     bool IsClassType(TCppType_t type);

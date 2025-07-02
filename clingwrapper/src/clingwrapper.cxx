@@ -500,6 +500,14 @@ Cppyy::TCppType_t Cppyy::GetRealType(TCppType_t type) {
     return Cpp::GetUnderlyingType(type);
 }
 
+Cppyy::TCppType_t Cppyy::GetPointerType(TCppType_t type) {
+  return Cpp::GetPointerType(type);
+}
+
+Cppyy::TCppType_t Cppyy::GetReferencedType(TCppType_t type, bool rvalue) {
+  return Cpp::GetReferencedType(type, rvalue);
+}
+
 bool Cppyy::IsClassType(TCppType_t type) {
     return Cpp::IsRecordType(type);
 }
