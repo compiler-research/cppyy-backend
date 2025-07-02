@@ -697,8 +697,11 @@ Cppyy::TCppType_t Cppyy::GetComplexType(const std::string &name) {
 
 std::string Cppyy::ResolveEnum(TCppScope_t handle)
 {
-    return Cpp::GetTypeAsString(
+    std::string type = Cpp::GetTypeAsString(
         Cpp::GetIntegerTypeFromEnumScope(handle));
+    if (type == "signed char")
+        return "char";
+    return type;
 }
 
 Cppyy::TCppScope_t Cppyy::GetUnderlyingScope(TCppScope_t scope)
