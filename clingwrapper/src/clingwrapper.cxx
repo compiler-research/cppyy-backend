@@ -1556,7 +1556,7 @@ std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args
             std::string defvalue = Cppyy::GetMethodArgDefault(method, iarg);
             if (!defvalue.empty()) sig << " = " << defvalue;
         }
-        if (iarg != nArgs-1) sig << (show_formal_args ? ", " : ",");
+        if (iarg != nArgs-1) sig << ", ";
     }
     sig << ")";
     return sig.str();
