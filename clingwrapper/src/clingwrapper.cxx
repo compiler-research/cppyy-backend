@@ -626,7 +626,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
 
     type = GetType(i, /*enable_slow_lookup=*/true);
     if (!type && parent && (Cpp::IsNamespace(parent) || Cpp::IsClass(parent))) {
-        type = Cppyy::GetTypeFromScope(Cppyy::GetNamed(name, parent));
+        type = Cppyy::GetTypeFromScope(Cppyy::GetNamed(resolved_name, parent));
     }
 
     if (!type) {
@@ -1644,8 +1644,8 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     // CPyCppyy assumes that we attempt instantiation here
     std::vector<Cpp::TemplateArgInfo> arg_types;
     std::vector<Cpp::TemplateArgInfo> templ_params;
-    Cppyy::AppendTypesSlow(proto, arg_types);
-    Cppyy::AppendTypesSlow(explicit_params, templ_params);
+    Cppyy::AppendTypesSlow(proto, arg_types, scope);
+    Cppyy::AppendTypesSlow(explicit_params, templ_params, scope);
 
     Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
         unresolved_candidate_methods, templ_params, arg_types);
