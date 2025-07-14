@@ -1553,7 +1553,7 @@ std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args
     if (max_args != (TCppIndex_t)-1) nArgs = std::min(nArgs, (int)max_args);
     for (int iarg = 0; iarg < nArgs; ++iarg) {
         sig << Cppyy::GetMethodArgTypeAsString(method, iarg);
-        if (show_formal_args && Cppyy::IsTemplatedMethod(method)) {
+        if (show_formal_args) {
             std::string argname = Cppyy::GetMethodArgName(method, iarg);
             if (!argname.empty()) sig << " " << argname;
             std::string defvalue = Cppyy::GetMethodArgDefault(method, iarg);
