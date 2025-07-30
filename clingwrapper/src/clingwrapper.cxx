@@ -1835,6 +1835,50 @@ bool Cppyy::CheckDatamember(TCppScope_t scope, const std::string& name) {
     return (bool) Cpp::LookupDatamember(name, scope);
 }
 
+bool Cppyy::IsLambdaClass(TCppType_t type) {
+    return Cpp::IsLambdaClass(type);
+}
+
+Cppyy::TCppScope_t Cppyy::WrapLambdaFromVariable(TCppScope_t var) {
+    std::ostringstream code;
+    std::string name = Cppyy::GetFinalName(var);
+    code << "namespace __cppyy_internal_wrap_g {\n"
+      << "  " << "std::function " << name << " = ::" << Cpp::GetQualifiedName(var) << ";\n"
+      << "}\n";
+    
+    if (Cppyy::Compile(code.str().c_str())) {
+      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      if (res) return res;
+    }
+    return var;
+}
+
+Cppyy::TCppScope_t Cppyy::AdaptFunctionForLambdaReturn(TCppScope_t fn) {
+    std::string fn_name = Cpp::GetQualifiedCompleteName(fn);
+    std::string signature = Cppyy::GetMethodSignature(fn, true);
+
+    std::ostringstream call;
+    call << "(";
+    for (size_t i = 0, n = Cppyy::GetMethodNumArgs(fn); i < n; i++) {
+        call << Cppyy::GetMethodArgName(fn, i);
+        if (i != n - 1)
+            call << ", ";
+    }
+    call << ")";
+    
+    std::ostringstream code;
+    static int i = 0;
+    std::string name = "lambda_return_convert_" + std::to_string(++i);
+        code << "namespace __cppyy_internal_wrap_g {\n"
+         << "auto " << name << signature << "{" << "return std::function(" << fn_name << call.str() << "); }\n"
+         << "}\n";
+    if (Cppyy::Compile(code.str().c_str())) {
+      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      if (res) return res;
+    }
+    return fn;
+}
+
 // std::string Cppyy::GetDatamemberName(TCppScope_t scope, TCppIndex_t idata)
 // {
 //     TClassRef& cr = type_from_handle(scope);
