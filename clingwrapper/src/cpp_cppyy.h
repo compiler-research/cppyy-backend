@@ -380,6 +380,8 @@ namespace Cppyy {
     bool IsStaticDatamember(TCppScope_t var);
     RPY_EXPORTED
     bool IsConstVar(TCppScope_t var);
+    RPY_EXPORTED
+    TCppScope_t ReduceReturnType(TCppScope_t fn, TCppType_t reduce);
 //     RPY_EXPORTED
 //     bool IsEnumData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED

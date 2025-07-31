@@ -486,6 +486,8 @@ Cppyy::TCppType_t Cppyy::ResolveEnumPointerType(TCppType_t type) {
 }
 
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
+    if (!type) return type;
+
     Cppyy::TCppType_t canonType = Cpp::GetCanonicalType(type);
 
     if (Cpp::IsEnumType(canonType)) {
@@ -1973,6 +1975,33 @@ bool Cppyy::IsStaticDatamember(TCppScope_t var)
 bool Cppyy::IsConstVar(TCppScope_t var)
 {
     return Cpp::IsConstVariable(var);
+}
+
+Cppyy::TCppScope_t Cppyy::ReduceReturnType(TCppScope_t fn, TCppType_t reduce) {
+    std::string fn_name = Cpp::GetQualifiedCompleteName(fn);
+    std::string signature = Cppyy::GetMethodSignature(fn, true);
+    std::string result_type = Cppyy::GetTypeAsString(reduce);
+
+    std::ostringstream call;
+    call << "(";
+    for (size_t i = 0, n = Cppyy::GetMethodNumArgs(fn); i < n; i++) {
+        call << Cppyy::GetMethodArgName(fn, i);
+        if (i != n - 1)
+            call << ", ";
+    }
+    call << ")";
+    
+    std::ostringstream code;
+    static int i = 0;
+    std::string name = "reduced_function_" + std::to_string(++i);
+        code << "namespace __cppyy_internal_wrap_g {\n"
+         << result_type << " " << name << signature << "{" << "return (" << result_type << ")::" << fn_name << call.str() << "; }\n"
+         << "}\n";
+    if (Cppyy::Compile(code.str().c_str())) {
+      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      if (res) return res;
+    }
+    return fn;
 }
 
 // bool Cppyy::IsEnumData(TCppScope_t scope, TCppIndex_t idata)
