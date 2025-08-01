@@ -359,6 +359,12 @@ namespace Cppyy {
     // RPY_EXPORTED
     // std::string GetDatamemberName(TCppScope_t scope, TCppIndex_t idata) { return ""; }
     RPY_EXPORTED
+    bool IsLambdaClass(TCppType_t type);
+    RPY_EXPORTED
+    TCppScope_t WrapLambdaFromVariable(TCppScope_t var);
+    RPY_EXPORTED
+    TCppScope_t AdaptFunctionForLambdaReturn(TCppScope_t fn);
+    RPY_EXPORTED
     TCppType_t GetDatamemberType(TCppScope_t data);
     RPY_EXPORTED
     std::string GetDatamemberTypeAsString(TCppScope_t var);
