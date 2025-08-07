@@ -485,8 +485,24 @@ Cppyy::TCppType_t Cppyy::ResolveEnumPointerType(TCppType_t type) {
     return type;
 }
 
+Cppyy::TCppType_t int_like_type(Cppyy::TCppType_t type) {
+    Cppyy::TCppType_t check_int_typedefs = type;
+    if (Cpp::IsPointerType(check_int_typedefs))
+        check_int_typedefs = Cpp::GetPointeeType(check_int_typedefs);
+    if (Cpp::IsReferenceType(check_int_typedefs))
+        check_int_typedefs = Cpp::GetReferencedType(check_int_typedefs);
+
+    if (Cpp::GetTypeAsString(check_int_typedefs) == "int8_t" || Cpp::GetTypeAsString(check_int_typedefs) == "uint8_t")
+        return check_int_typedefs;
+    return nullptr;
+}
+
 Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
     if (!type) return type;
+
+    TCppType_t check_int_typedefs = int_like_type(type);
+    if (check_int_typedefs)
+        return type;
 
     Cppyy::TCppType_t canonType = Cpp::GetCanonicalType(type);
 
@@ -502,6 +518,9 @@ Cppyy::TCppType_t Cppyy::ResolveType(TCppType_t type) {
 }
 
 Cppyy::TCppType_t Cppyy::GetRealType(TCppType_t type) {
+    TCppType_t check_int_typedefs = int_like_type(type);
+    if (check_int_typedefs)
+        return check_int_typedefs;
     return Cpp::GetUnderlyingType(type);
 }
 
