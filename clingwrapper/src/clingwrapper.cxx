@@ -1289,33 +1289,12 @@ Cppyy::TCppIndex_t Cppyy::GetNumBases(TCppScope_t klass)
 /// calling this function on an instance of `C` will return 3, the steps
 /// required to go from C to X.
 Cppyy::TCppIndex_t Cppyy::GetNumBasesLongestBranch(TCppScope_t klass) {
-    std::vector<TCppScope_t> directbases;
+    std::vector<size_t> num;
     for (TCppIndex_t ibase = 0; ibase < GetNumBases(klass); ++ibase)
-        directbases.push_back(GetScope(GetBaseName(klass, ibase)));
-    return directbases.size();
-//    if (directbases.empty()) {
-//       // This is a leaf with no bases
-//       return 0;
-//    }
-
-//  else {
-//       // If there is at least one direct base
-//       std::vector<Cppyy::TCppIndex_t> nbases_branches;
-//       nbases_branches.reserve(ndirectbases);
-//       // Traverse all direct bases of the current class and call the function
-//       // recursively
-//       for (auto baseclass : TRangeDynCast<TBaseClass>(directbases)) {
-//          if (!baseclass)
-//             continue;
-//          if (auto baseclass_tclass = baseclass->GetClassPointer()) {
-//             nbases_branches.emplace_back(GetLongestInheritancePath(baseclass_tclass));
-//          }
-//       }
-//       // Get longest path among the direct bases of the current class
-//       auto longestbranch = std::max_element(std::begin(nbases_branches), std::end(nbases_branches));
-//       // Add 1 to include the current class in the count
-//       return 1 + *longestbranch;
-//    }
+        num.push_back(GetNumBasesLongestBranch(Cppyy::GetBaseScope(klass, ibase)));
+    if (num.empty())
+        return 0;
+    return *std::max_element(num.begin(), num.end()) + 1;
 }
 
 std::string Cppyy::GetBaseName(TCppType_t klass, TCppIndex_t ibase)
