@@ -924,6 +924,19 @@ Cppyy::TCppScope_t Cppyy::GetGlobalScope()
     return Cpp::GetGlobalScope();
 }
 
+bool Cppyy::IsMethod(TCppScope_t handle) {
+    return Cpp::IsMethod(handle);
+}
+
+bool Cppyy::IsFunction(TCppScope_t handle) {
+    return Cpp::IsFunction(handle);
+}
+
+bool Cppyy::IsTemplateClass(TCppScope_t handle)
+{
+    return Cpp::IsTemplateClass(handle);
+}
+
 bool Cppyy::IsTemplate(TCppScope_t handle)
 {
     return Cpp::IsTemplate(handle);
@@ -1231,6 +1244,13 @@ bool Cppyy::IsNamespace(TCppScope_t scope)
     // Test if this scope represents a namespace.
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     return Cpp::IsNamespace(scope) || Cpp::GetGlobalScope() == scope;
+}
+
+bool Cppyy::IsPureNamespace(TCppScope_t scope)
+{
+    if (!scope)
+      return false;
+    return Cpp::IsNamespace(scope);
 }
 
 bool Cppyy::IsClass(TCppScope_t scope)
@@ -1624,6 +1644,11 @@ std::string Cppyy::GetMethodReturnTypeAsString(TCppMethod_t method)
             Cpp::GetFunctionReturnType(method)));
 }
 
+Cppyy::TCppIndex_t Cppyy::GetTemplateNumArgs(Cpp::TCppScope_t method)
+{
+    return Cpp::GetTemplateNumArgs(method);
+}
+
 Cppyy::TCppIndex_t Cppyy::GetMethodNumArgs(TCppMethod_t method)
 {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
@@ -1636,6 +1661,9 @@ Cppyy::TCppIndex_t Cppyy::GetMethodReqArgs(TCppMethod_t method)
     return Cpp::GetFunctionRequiredArgs(method);
 }
 
+std::string Cppyy::GetTemplateArgName(TCppScope_t scope, TCppIndex_t iarg) {
+    return Cpp::GetTemplateArgName(scope, iarg);
+}
 std::string Cppyy::GetMethodArgName(TCppMethod_t method, TCppIndex_t iarg)
 {
     if (!method)
@@ -1777,6 +1805,11 @@ bool Cppyy::ExistsMethodTemplate(TCppScope_t scope, const std::string& name)
 }
 
 bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
+{
+    return Cpp::IsTemplatedFunction(method) || Cpp::IsTemplateInstantiationOrSpecialization(method);
+}
+
+bool Cppyy::IsPureTemplatedMethod(TCppMethod_t method)
 {
     return Cpp::IsTemplatedFunction(method);
 }
@@ -2051,6 +2084,14 @@ Cppyy::TCppScope_t Cppyy::AdaptFunctionForLambdaReturn(TCppScope_t fn) {
 //     }
 //     return count;
 // }
+
+void Cppyy::GetMemberInNamespace(TCppScope_t ns, std::vector<TCppScope_t>& members) {
+    Cpp::GetDatamembersInNamespace(ns, members);
+    Cpp::GetFunctionsInNamespace(ns, members);
+    Cpp::GetClassInNamespace(ns, members);
+    Cpp::GetTemplatedClassInNamespace(ns, members);
+    Cpp::GetTemplatedFunctionsInNamespace(ns, members);
+}
 
 Cppyy::TCppType_t Cppyy::GetDatamemberType(TCppScope_t var)
 {
