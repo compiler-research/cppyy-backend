@@ -783,6 +783,11 @@ Cppyy::TCppScope_t Cppyy::GetTypeScope(TCppScope_t var)
         Cpp::GetVariableType(var));
 }
 
+std::string Cppyy::GetDoc(Cppyy::TCppScope_t scope)
+{
+    return Cpp::GetDocString(scope);
+}
+
 Cppyy::TCppScope_t Cppyy::GetNamed(const std::string& name,
                                    TCppScope_t parent_scope)
 {
