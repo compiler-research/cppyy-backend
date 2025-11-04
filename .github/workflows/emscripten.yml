@@ -54,7 +54,7 @@ jobs:
             llvm_targets_to_build: "WebAssembly"
             emsdk_ver: "3.1.73"
             
-      steps:
+    steps:
     - uses: actions/checkout@v4
       with:
         repository: compiler-research/CppInterOp
