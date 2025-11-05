@@ -532,6 +532,14 @@ Cppyy::TCppType_t Cppyy::GetReferencedType(TCppType_t type, bool rvalue) {
   return Cpp::GetReferencedType(type, rvalue);
 }
 
+bool Cppyy::IsRValueReferenceType(TCppType_t type) {
+    return Cpp::IsRValueReferenceType(type);
+}
+
+bool Cppyy::IsLValueReferenceType(TCppType_t type) {
+    return Cpp::IsLValueReferenceType(type);
+}
+
 bool Cppyy::IsClassType(TCppType_t type) {
     return Cpp::IsRecordType(type);
 }
