@@ -1105,9 +1105,13 @@ bool Cppyy::IsNamespace(TCppScope_t scope)
     return Cpp::IsNamespace(scope) || Cpp::GetGlobalScope() == scope;
 }
 
+bool Cppyy::IsCUDAFunction(TCppScope_t scope)
+{
+    return Cpp::IsCUDAFunction(scope);
+}
+
 bool Cppyy::IsClass(TCppScope_t scope)
 {
-    // Test if this scope represents a namespace.
     return Cpp::IsClass(scope);
 }
 //
@@ -1851,6 +1855,31 @@ Cppyy::TCppScope_t Cppyy::WrapLambdaFromVariable(TCppScope_t var) {
     return var;
 }
 
+void Cppyy::AdaptCUDAFunction(TCppScope_t fn) {
+    std::string fn_name = Cpp::GetQualifiedCompleteName(fn);
+    std::string signature = Cppyy::GetMethodSignature(fn, true);
+
+    std::ostringstream call;
+    call << "(";
+    for (size_t i = 0, n = Cppyy::GetMethodNumArgs(fn); i < n; i++) {
+        call << Cppyy::GetMethodArgName(fn, i);
+        if (i != n - 1)
+            call << ", ";
+    }
+    call << ")";
+    
+    std::ostringstream code;
+    static int i = 0;
+        code
+         << "template <int _X, int _Y>\n"
+         << "auto " << fn_name << signature << "{" << " return " << fn_name << "<<<_X, _Y>>>"  << call.str() << "; }\n";
+    Cppyy::Compile(code.str().c_str());
+    // if (Cppyy::Compile(code.str().c_str())) {
+    //   TCppScope_t res = Cpp::GetNamed(fn_name, Cpp::GetScope("__cppjit_internal_wrap_g"));
+    //   if (res) return res;
+    // }
+    // return fn;
+}
 Cppyy::TCppScope_t Cppyy::AdaptFunctionForLambdaReturn(TCppScope_t fn) {
     std::string fn_name = Cpp::GetQualifiedCompleteName(fn);
     std::string signature = Cppyy::GetMethodSignature(fn, true);

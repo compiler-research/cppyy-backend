@@ -203,6 +203,8 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsNamespace(TCppScope_t scope);
     RPY_EXPORTED
+    bool IsCUDAFunction(TCppScope_t scope);
+    RPY_EXPORTED
     bool IsClass(TCppScope_t scope);
     RPY_EXPORTED
     bool IsTemplate(TCppScope_t scope);
@@ -362,6 +364,8 @@ namespace Cppyy {
     bool IsLambdaClass(TCppType_t type);
     RPY_EXPORTED
     TCppScope_t WrapLambdaFromVariable(TCppScope_t var);
+    RPY_EXPORTED
+    void AdaptCUDAFunction(TCppScope_t fn);
     RPY_EXPORTED
     TCppScope_t AdaptFunctionForLambdaReturn(TCppScope_t fn);
     RPY_EXPORTED
