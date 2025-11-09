@@ -110,6 +110,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppScope_t GetFullScope(const std::string& scope_name);
     RPY_EXPORTED
+    std::string GetDoc(TCppScope_t scope);
+    RPY_EXPORTED
     TCppScope_t GetTypeScope(TCppScope_t klass);
     RPY_EXPORTED
     TCppScope_t GetNamed(const std::string& scope_name,
@@ -203,7 +205,15 @@ namespace Cppyy {
     RPY_EXPORTED
     bool IsNamespace(TCppScope_t scope);
     RPY_EXPORTED
+    bool IsPureNamespace(TCppScope_t scope);
+    RPY_EXPORTED
     bool IsClass(TCppScope_t scope);
+    RPY_EXPORTED
+    bool IsMethod(TCppScope_t handle);
+    RPY_EXPORTED
+    bool IsFunction(TCppScope_t handle);
+    RPY_EXPORTED
+    bool IsTemplateClass(TCppScope_t scope);
     RPY_EXPORTED
     bool IsTemplate(TCppScope_t scope);
     RPY_EXPORTED
@@ -288,9 +298,13 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetMethodReturnTypeAsString(TCppMethod_t);
     RPY_EXPORTED
+    TCppIndex_t GetTemplateNumArgs(TCppScope_t);
+    RPY_EXPORTED
     TCppIndex_t GetMethodNumArgs(TCppMethod_t);
     RPY_EXPORTED
     TCppIndex_t GetMethodReqArgs(TCppMethod_t);
+    RPY_EXPORTED
+    std::string GetTemplateArgName(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
     std::string GetMethodArgName(TCppMethod_t, TCppIndex_t iarg);
     RPY_EXPORTED
@@ -319,6 +333,8 @@ namespace Cppyy {
     std::string GetTemplatedMethodName(TCppScope_t scope, TCppIndex_t imeth);
     RPY_EXPORTED
     bool        ExistsMethodTemplate(TCppScope_t scope, const std::string& name);
+    RPY_EXPORTED
+    bool        IsPureTemplatedMethod(TCppMethod_t method);
     RPY_EXPORTED
     bool        IsTemplatedMethod(TCppMethod_t method);
     RPY_EXPORTED
@@ -364,6 +380,8 @@ namespace Cppyy {
     TCppScope_t WrapLambdaFromVariable(TCppScope_t var);
     RPY_EXPORTED
     TCppScope_t AdaptFunctionForLambdaReturn(TCppScope_t fn);
+    RPY_EXPORTED
+    void GetMemberInNamespace(TCppScope_t ns, std::vector<TCppScope_t>& members);
     RPY_EXPORTED
     TCppType_t GetDatamemberType(TCppScope_t data);
     RPY_EXPORTED
