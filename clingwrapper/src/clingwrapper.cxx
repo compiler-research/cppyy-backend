@@ -462,7 +462,7 @@ std::string Cppyy::ResolveName(const std::string& name) {
 // }
 
 Cppyy::TCppType_t Cppyy::ResolveEnumReferenceType(TCppType_t type) {
-    if (!Cpp::IsLValueReferenceType(type))
+    if (Cpp::GetValueKind(type) != Cpp::ValueKind::LValue)
         return type;
 
     TCppType_t nonReferenceType = Cpp::GetNonReferenceType(type);
@@ -530,6 +530,14 @@ Cppyy::TCppType_t Cppyy::GetPointerType(TCppType_t type) {
 
 Cppyy::TCppType_t Cppyy::GetReferencedType(TCppType_t type, bool rvalue) {
   return Cpp::GetReferencedType(type, rvalue);
+}
+
+bool Cppyy::IsRValueReferenceType(TCppType_t type) {
+    return Cpp::GetValueKind(type) == Cpp::ValueKind::RValue;
+}
+
+bool Cppyy::IsLValueReferenceType(TCppType_t type) {
+    return Cpp::GetValueKind(type) == Cpp::ValueKind::LValue;
 }
 
 bool Cppyy::IsClassType(TCppType_t type) {
@@ -1357,7 +1365,7 @@ bool Cppyy::GetSmartPtrInfo(
         return false;
 
     std::vector<TCppMethod_t> ops;
-    Cpp::GetOperator(scope, Cpp::OP_Arrow, ops);
+    Cpp::GetOperator(scope, Cpp::Operator::OP_Arrow, ops);
     if (ops.size() != 1)
         return false;
 
