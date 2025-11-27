@@ -90,6 +90,10 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string ResolveEnum(TCppScope_t enum_scope);
     RPY_EXPORTED
+    bool IsLValueReferenceType(TCppType_t type);
+    RPY_EXPORTED
+    bool IsRValueReferenceType(TCppType_t type);
+    RPY_EXPORTED
     bool IsClassType(TCppType_t type);
     RPY_EXPORTED
     bool IsPointerType(TCppType_t type);
