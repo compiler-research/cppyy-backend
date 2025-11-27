@@ -1508,8 +1508,8 @@ Cppyy::TCppType_t Cppyy::GetMethodArgType(TCppMethod_t method, TCppIndex_t iarg)
 
 std::string Cppyy::GetMethodArgTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
 {
-    return Cpp::GetTypeAsString(
-        Cpp::GetFunctionArgType(method, iarg));
+  return Cpp::GetTypeAsString(Cpp::RemoveTypeQualifier(
+      Cpp::GetFunctionArgType(method, iarg), Cpp::QualKind::Const));
 }
 
 std::string Cppyy::GetMethodArgCanonTypeAsString(TCppMethod_t method, TCppIndex_t iarg)
