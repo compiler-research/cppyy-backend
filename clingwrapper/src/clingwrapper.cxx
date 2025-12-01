@@ -605,6 +605,19 @@ bool split_comma_saparated_types(const std::string& name,
   return true;
 }
 
+Cpp::TCppScope_t GetEnumFromCompleteName(const std::string &name) {
+  std::string delim = "::";
+  size_t start = 0;
+  size_t end = name.find(delim);
+  Cpp::TCppScope_t curr_scope = 0;
+  while (end != std::string::npos) {
+    curr_scope = Cpp::GetNamed(name.substr(start, end - start), curr_scope);
+    start = end + delim.length();
+    end = name.find(delim, start);
+  }
+  return Cpp::GetNamed(name.substr(start, end), curr_scope);
+}
+
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string& name,
                             std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent) {
@@ -668,6 +681,10 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
 
     if (is_integral(i))
         integral_value = strdup(i.c_str());
+    if (Cpp::TCppScope_t scope = GetEnumFromCompleteName(i))
+      if (Cpp::IsEnumConstant(scope))
+        integral_value =
+            strdup(std::to_string(Cpp::GetEnumConstantValue(scope)).c_str());
     types.emplace_back(type, integral_value);
   }
   return false;
