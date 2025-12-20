@@ -95,7 +95,9 @@ namespace Cppyy {
     TCppType_t GetType(const std::string &name, bool enable_slow_lookup = false);
     RPY_EXPORTED
     bool AppendTypesSlow(const std::string &name,
-                         std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent = nullptr);
+                         std::vector<Cpp::TemplateArgInfo>& types,
+                         Cppyy::TCppScope_t parent = nullptr,
+                         bool append_unknown=false);
     RPY_EXPORTED
     TCppType_t GetComplexType(const std::string &element_type);
     RPY_EXPORTED
@@ -244,6 +246,8 @@ namespace Cppyy {
     bool        IsSmartPtr(TCppScope_t klass);
     RPY_EXPORTED
     bool        GetSmartPtrInfo(const std::string&, TCppScope_t* raw, TCppMethod_t* deref);
+    RPY_EXPORTED
+    bool        GetSmartPtrInfo(TCppScope_t, TCppScope_t* raw, TCppMethod_t* deref);
 // calculate offsets between declared and actual type, up-cast: direction > 0; down-cast: direction < 0
     RPY_EXPORTED
     ptrdiff_t GetBaseOffset(
@@ -310,13 +314,21 @@ namespace Cppyy {
     bool        IsStaticTemplate(TCppScope_t scope, const std::string& name);
     RPY_EXPORTED
     TCppMethod_t GetMethodTemplate(
-        TCppScope_t scope, const std::string& name, const std::string& proto);
+        TCppScope_t scope, const std::string& name, const std::string& proto, std::vector<TCppMethod_t> &ambiguous_candidates, bool include_non_templated=false);
+    RPY_EXPORTED
+    bool IsNonStaticMethod(Cppyy::TCppMethod_t func);
+    RPY_EXPORTED
+    Cppyy::TCppMethod_t BestOverloadFunctionMatch(const std::vector<TCppMethod_t> &candidates, const std::string &proto, std::vector<TCppMethod_t> &ambiguous_candidates, TCppScope_t parent_scope = nullptr, bool is_operator = false);
+    RPY_EXPORTED
+    bool IsOperator(Cppyy::TCppScope_t scope);
+    RPY_EXPORTED
+    bool IsConversionOperator(Cppyy::TCppScope_t scope);
     RPY_EXPORTED
     void GetClassOperators(Cppyy::TCppScope_t klass, const std::string& opname,
                            std::vector<TCppMethod_t>& operators);
     RPY_EXPORTED
     TCppMethod_t  GetGlobalOperator(
-        TCppScope_t scope, const std::string& lc, const std::string& rc, const std::string& op);
+        TCppScope_t scope, const std::string& lc, const std::string& rc, const std::string& op, std::vector<TCppMethod_t> &ambiguous_candidates);
 
 // method properties ---------------------------------------------------------
     RPY_EXPORTED
