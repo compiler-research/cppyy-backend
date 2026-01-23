@@ -1,6 +1,8 @@
 #ifndef CPYCPPYY_CPPYY_H
 #define CPYCPPYY_CPPYY_H
 
+#include <CppInterOp/Dispatch.h>
+
 // Standard
 #include <cassert>
 #include <set>
@@ -11,10 +13,6 @@
 #include <iostream>
 
 #include "callcontext.h"
-
-// #include "TCling.h"
-
-#include <CppInterOp/CppInterOp.h>
 
 // some more types; assumes Cppyy.h follows Python.h
 #ifndef PY_LONG_LONG

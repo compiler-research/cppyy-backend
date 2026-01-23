@@ -177,6 +177,12 @@ class ApplicationStarter {
   Cpp::TInterp_t Interp;
 public:
     ApplicationStarter() {
+      if (!Cpp::LoadDispatchAPI(
+              CPPINTEROP_DIR
+              "/lib/libclangCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX)) {
+        std::cerr << "[cppyy-backend] Failed to load CppInterOp" << std::endl;
+        return;
+      }
         // Check if somebody already loaded CppInterOp and created an
         // interpreter for us.
         if (auto * existingInterp = Cpp::GetInterpreter()) {
@@ -207,7 +213,8 @@ public:
             Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"});
 #endif
 #else
-            Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"});
+            Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"},
+                                            /*GpuArgs=*/{});
 #endif
         }
 
@@ -269,16 +276,18 @@ public:
             "#if __has_include(<optional>)\n"
             "#include <optional>\n"
             "#endif\n"
-            "#include \"CppInterOp/CppInterOp.h\"";
+            "#include <CppInterOp/Dispatch.h>\n";
         Cpp::Process(code);
 
     // create helpers for comparing thingies
-        Cpp::Declare(
-            "namespace __cppyy_internal { template<class C1, class C2>"
-            " bool is_equal(const C1& c1, const C2& c2) { return (bool)(c1 == c2); } }");
-        Cpp::Declare(
-            "namespace __cppyy_internal { template<class C1, class C2>"
-            " bool is_not_equal(const C1& c1, const C2& c2) { return (bool)(c1 != c2); } }");
+        Cpp::Declare("namespace __cppyy_internal { template<class C1, class C2>"
+                     " bool is_equal(const C1& c1, const C2& c2) { return "
+                     "(bool)(c1 == c2); } }",
+                     /*silent=*/false);
+        Cpp::Declare("namespace __cppyy_internal { template<class C1, class C2>"
+                     " bool is_not_equal(const C1& c1, const C2& c2) { return "
+                     "(bool)(c1 != c2); } }",
+                     /*silent=*/false);
 
         // Define gCling when we run with clang-repl.
         // FIXME: We should get rid of all the uses of gCling as this seems to
@@ -292,7 +301,8 @@ public:
         Cpp::Process(InterpPtrSS.str().c_str());
 
     // helper for multiple inheritance
-        Cpp::Declare("namespace __cppyy_internal { struct Sep; }");
+        Cpp::Declare("namespace __cppyy_internal { struct Sep; }",
+                     /*silent=*/false);
 
         // std::string libInterOp = I->getDynamicLibraryManager()->lookupLibrary("libcling");
         // void *interopDL = dlopen(libInterOp.c_str(), RTLD_LAZY);
@@ -468,7 +478,7 @@ Cppyy::TCppType_t Cppyy::ResolveEnumReferenceType(TCppType_t type) {
     TCppType_t nonReferenceType = Cpp::GetNonReferenceType(type);
     if (Cpp::IsEnumType(nonReferenceType)) {
         TCppType_t underlying_type =  Cpp::GetIntegerTypeFromEnumType(nonReferenceType);
-        return Cpp::GetReferencedType(underlying_type);
+        return Cpp::GetReferencedType(underlying_type, /*rvalue=*/false);
     }
     return type;
 }
@@ -490,7 +500,8 @@ Cppyy::TCppType_t int_like_type(Cppyy::TCppType_t type) {
     if (Cpp::IsPointerType(check_int_typedefs))
         check_int_typedefs = Cpp::GetPointeeType(check_int_typedefs);
     if (Cpp::IsReferenceType(check_int_typedefs))
-        check_int_typedefs = Cpp::GetReferencedType(check_int_typedefs);
+      check_int_typedefs =
+          Cpp::GetReferencedType(check_int_typedefs, /*rvalue=*/false);
 
     if (Cpp::GetTypeAsString(check_int_typedefs) == "int8_t" || Cpp::GetTypeAsString(check_int_typedefs) == "uint8_t")
         return check_int_typedefs;
@@ -643,12 +654,13 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   static unsigned long long struct_count = 0;
   std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
   if (!struct_count)
-    Cpp::Declare(code.c_str()); // initialize the trampoline
+    Cpp::Declare(code.c_str(), /*silent=*/false); // initialize the trampoline
 
   std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   // FIXME: We cannot use silent because it erases our error code from Declare!
   if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/false)) {
-    TCppType_t varN = Cpp::GetVariableType(Cpp::GetNamed(var.c_str()));
+    TCppType_t varN =
+        Cpp::GetVariableType(Cpp::GetNamed(var.c_str(), /*parent=*/nullptr));
     TCppScope_t instance_class = Cpp::GetScopeFromType(varN);
     size_t oldSize = types.size();
     Cpp::GetClassTemplateInstantiationArgs(instance_class, types);
@@ -791,7 +803,8 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
         std::vector<Cpp::TemplateArgInfo> templ_params;
         if (!Cppyy::AppendTypesSlow(params, templ_params))
           return Cpp::InstantiateTemplate(scope, templ_params.data(),
-                                          templ_params.size());
+                                          templ_params.size(),
+                                          /*instantiate_body=*/false);
       }
     }
     return nullptr;
@@ -918,22 +931,22 @@ bool Cppyy::IsComplete(TCppScope_t scope)
 // // memory management ---------------------------------------------------------
 Cppyy::TCppObject_t Cppyy::Allocate(TCppScope_t scope)
 {
-    return Cpp::Allocate(scope);
+  return Cpp::Allocate(scope, /*count=*/1);
 }
 
 void Cppyy::Deallocate(TCppScope_t scope, TCppObject_t instance)
 {
-    Cpp::Deallocate(scope, instance);
+  Cpp::Deallocate(scope, instance, /*count=*/1);
 }
 
 Cppyy::TCppObject_t Cppyy::Construct(TCppScope_t scope, void* arena/*=nullptr*/)
 {
-    return Cpp::Construct(scope, arena);
+  return Cpp::Construct(scope, arena, /*count=*/1);
 }
 
 void Cppyy::Destruct(TCppScope_t scope, TCppObject_t instance)
 {
-    Cpp::Destruct(instance, scope);
+  Cpp::Destruct(instance, scope, true, /*count=*/0);
 }
 
 static inline
@@ -1079,7 +1092,7 @@ Cppyy::TCppObject_t Cppyy::CallConstructor(
 
 void Cppyy::CallDestructor(TCppScope_t scope, TCppObject_t self)
 {
-    Cpp::Destruct(self, scope, /*withFree=*/false);
+  Cpp::Destruct(self, scope, /*withFree=*/false, /*count=*/0);
 }
 
 Cppyy::TCppObject_t Cppyy::CallO(TCppMethod_t method,
@@ -1382,7 +1395,8 @@ bool Cppyy::GetSmartPtrInfo(
         return false;
 
     std::vector<TCppMethod_t> ops;
-    Cpp::GetOperator(scope, Cpp::Operator::OP_Arrow, ops);
+    Cpp::GetOperator(scope, Cpp::Operator::OP_Arrow, ops,
+                     /*kind=*/Cpp::OperatorArity::kBoth);
     if (ops.size() != 1)
         return false;
 
@@ -1680,9 +1694,9 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
     if (!cppmeth && unresolved_candidate_methods.size() == 1 &&
         !templ_params.empty())
-      cppmeth =
-          Cpp::InstantiateTemplate(unresolved_candidate_methods[0],
-                                   templ_params.data(), templ_params.size());
+      cppmeth = Cpp::InstantiateTemplate(
+          unresolved_candidate_methods[0], templ_params.data(),
+          templ_params.size(), /*instantiate_body=*/false);
 
     return cppmeth;
 
@@ -1715,7 +1729,8 @@ void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
                               const std::string& opname,
                               std::vector<TCppScope_t>& operators) {
     std::string op = opname.substr(8);
-    Cpp::GetOperator(klass, Cpp::GetOperatorFromSpelling(op), operators);
+    Cpp::GetOperator(klass, Cpp::GetOperatorFromSpelling(op), operators,
+                     /*kind=*/Cpp::OperatorArity::kBoth);
 }
 
 Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
@@ -1730,7 +1745,8 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     }
 
     std::vector<TCppScope_t> overloads;
-    Cpp::GetOperator(scope, Cpp::GetOperatorFromSpelling(opname), overloads);
+    Cpp::GetOperator(scope, Cpp::GetOperatorFromSpelling(opname), overloads,
+                     /*kind=*/Cpp::OperatorArity::kBoth);
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
     for (auto overload: overloads) {
@@ -1870,7 +1886,8 @@ Cppyy::TCppScope_t Cppyy::WrapLambdaFromVariable(TCppScope_t var) {
       << "}\n";
     
     if (Cppyy::Compile(code.str().c_str())) {
-      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      TCppScope_t res = Cpp::GetNamed(
+          name, Cpp::GetScope("__cppyy_internal_wrap_g", /*parent=*/nullptr));
       if (res) return res;
     }
     return var;
@@ -1896,7 +1913,8 @@ Cppyy::TCppScope_t Cppyy::AdaptFunctionForLambdaReturn(TCppScope_t fn) {
          << "auto " << name << signature << "{" << "return std::function(" << fn_name << call.str() << "); }\n"
          << "}\n";
     if (Cppyy::Compile(code.str().c_str())) {
-      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      TCppScope_t res = Cpp::GetNamed(
+          name, Cpp::GetScope("__cppyy_internal_wrap_g", /*parent=*/nullptr));
       if (res) return res;
     }
     return fn;
@@ -2065,7 +2083,8 @@ Cppyy::TCppScope_t Cppyy::ReduceReturnType(TCppScope_t fn, TCppType_t reduce) {
          << result_type << " " << name << signature << "{" << "return (" << result_type << ")::" << fn_name << call.str() << "; }\n"
          << "}\n";
     if (Cppyy::Compile(code.str().c_str())) {
-      TCppScope_t res = Cpp::GetNamed(name, Cpp::GetScope("__cppyy_internal_wrap_g"));
+      TCppScope_t res = Cpp::GetNamed(
+          name, Cpp::GetScope("__cppyy_internal_wrap_g", /*parent=*/nullptr));
       if (res) return res;
     }
     return fn;
@@ -2146,7 +2165,8 @@ Cppyy::TCppIndex_t Cppyy::GetEnumDataValue(TCppScope_t scope)
 Cppyy::TCppScope_t Cppyy::InstantiateTemplate(
              TCppScope_t tmpl, Cpp::TemplateArgInfo* args, size_t args_size)
 {
-    return Cpp::InstantiateTemplate(tmpl, args, args_size);
+  return Cpp::InstantiateTemplate(tmpl, args, args_size,
+                                  /*instantiate_body=*/false);
 }
 
 void Cppyy::DumpScope(TCppScope_t scope)

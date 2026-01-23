@@ -9,6 +9,7 @@ set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 
 add_library(cppyy-backend SHARED
     clingwrapper/src/clingwrapper.cxx
+    clingwrapper/src/cppinterop_dispatch.cxx
 )
 
 # set_target_properties(cppyy-backend PROPERTIES VERSION ${PROJECT_VERSION})
@@ -62,11 +63,10 @@ else()
     add_dependencies(libCppInterOp CppInterOp)
 endif()
 
-set_source_files_properties(clingwrapper/src/clingwrapper.cxx
-  PROPERTIES COMPILE_DEFINITIONS "CPPINTEROP_DIR=\"${_interop_install_dir}\"")
-
-# Link to CppInterOp library. Without this can't build on MacOS due to undefined symbols
-target_link_libraries(cppyy-backend ${_interop_install_dir}/lib/libclangCppInterOp${CMAKE_SHARED_LIBRARY_SUFFIX})
+target_compile_definitions(cppyy-backend PRIVATE
+  CPPINTEROP_DIR="${_interop_install_dir}"
+  CMAKE_SHARED_LIBRARY_SUFFIX="${CMAKE_SHARED_LIBRARY_SUFFIX}"
+)
 
 
 target_include_directories(cppyy-backend PUBLIC ${_interop_install_dir}/include)
