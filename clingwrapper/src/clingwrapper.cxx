@@ -789,9 +789,16 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
 
       if (Cppyy::IsTemplate(scope)) {
         std::vector<Cpp::TemplateArgInfo> templ_params;
-        if (!Cppyy::AppendTypesSlow(params, templ_params))
-          return Cpp::InstantiateTemplate(scope, templ_params.data(),
+        if (!Cppyy::AppendTypesSlow(params, templ_params)) {
+          scope = Cpp::InstantiateTemplate(scope, templ_params.data(),
                                           templ_params.size());
+          if (scope) {
+            std::string attribute = name.substr(end + 1);
+            if (attribute.size() > 2) // go past ::
+                Cppyy::GetScope(attribute.substr(2), scope);
+            return scope;
+          }
+        }
       }
     }
     return nullptr;
