@@ -208,9 +208,10 @@ public:
 #ifdef __arm64__
 #ifdef __APPLE__
             // If on apple silicon don't use -march=native
-            Interp = Cpp::CreateInterpreter({"-std=c++17"});
+            Interp = Cpp::CreateInterpreter({"-std=c++17"}, /*GpuArgs=*/{});
 #else
-            Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"});
+            Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"},
+                                            /*GpuArgs=*/{});
 #endif
 #else
             Interp = Cpp::CreateInterpreter({"-std=c++17", "-march=native"},
