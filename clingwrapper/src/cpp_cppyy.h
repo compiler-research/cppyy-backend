@@ -311,7 +311,7 @@ namespace Cppyy {
     RPY_EXPORTED
     std::string GetMethodPrototype(TCppMethod_t, bool show_formal_args);
     RPY_EXPORTED
-    std::string GetDoxygenComment(TCppMethod_t method, bool strip_markers = true);
+    std::string GetDoxygenComment(TCppScope_t scope, bool strip_markers = true);
     RPY_EXPORTED
     bool        IsConstMethod(TCppMethod_t);
 // // Templated method/function reflection information ------------------------------------

@@ -1614,9 +1614,9 @@ std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args
   return ""; // return Cpp::GetFunctionPrototype(method, show_formal_args);
 }
 
-std::string Cppyy::GetDoxygenComment(TCppMethod_t method, bool strip_markers)
+std::string Cppyy::GetDoxygenComment(TCppScope_t scope, bool strip_markers)
 {
-    return Cpp::GetDoxygenComment(method, strip_markers);
+    return Cpp::GetDoxygenComment(scope, strip_markers);
 }
 
 bool Cppyy::IsConstMethod(TCppMethod_t method)
