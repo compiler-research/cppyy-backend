@@ -1852,6 +1852,11 @@ bool Cppyy::IsStaticMethod(TCppMethod_t method)
     return Cpp::IsStaticMethod(method);
 }
 
+bool Cppyy::IsExplicit(TCppMethod_t method)
+{
+    return Cpp::IsExplicit(method);
+}
+
 //
 // // data member reflection information ----------------------------------------
 // Cppyy::TCppIndex_t Cppyy::GetNumDatamembers(TCppScope_t scope, bool accept_namespace)
