@@ -10,7 +10,6 @@
 #include <vector>
 #include <stddef.h>
 #include <stdint.h>
-#include <iostream>
 
 #include "callcontext.h"
 
@@ -46,15 +45,6 @@ static inline size_t CALL_NARGS(size_t nargs) {
     return nargs & ~DIRECT_CALL;
 }
 
-// namespace cling
-// {
-// namespace cppyy
-// {
-//     extern inline cling::Interpreter * gCling = 0;
-// }
-// }
-//
-
 namespace Cppyy {
     typedef Cpp::TCppScope_t    TCppScope_t;
     typedef Cpp::TCppType_t     TCppType_t;
@@ -69,7 +59,7 @@ namespace Cppyy {
     bool Compile(const std::string& code, bool silent = false);
     RPY_EXPORTED
     std::string ToString(TCppType_t klass, TCppObject_t obj);
-//
+
 // // name to opaque C++ scope representation -----------------------------------
     RPY_EXPORTED
     std::string ResolveName(const std::string& cppitem_name);
@@ -394,8 +384,9 @@ namespace Cppyy {
     bool IsConstVar(TCppScope_t var);
     RPY_EXPORTED
     TCppScope_t ReduceReturnType(TCppScope_t fn, TCppType_t reduce);
-//     RPY_EXPORTED
-//     bool IsEnumData(TCppScope_t scope, TCppIndex_t idata);
+    //  IsEnumData is unused.
+    //  RPY_EXPORTED
+    //  bool IsEnumData(TCppScope_t scope, TCppIndex_t idata);
     RPY_EXPORTED
     std::vector<long int> GetDimensions(TCppType_t type);
 
@@ -420,32 +411,5 @@ namespace Cppyy {
     RPY_EXPORTED
     void        DumpScope(TCppScope_t scope);
 } // namespace Cppyy
-
-
-// class CallWrapper {
-// public:
-//     typedef const void* DeclId_t;
-//
-// public:
-//     CallWrapper(void * f) : fDecl(nullptr), fName(""), fTF(nullptr) { assert(0); }
-//     CallWrapper(DeclId_t fid, const std::string& n) : fDecl(fid), fName(n), fTF(nullptr) {}
-//     ~CallWrapper() {}
-//
-// public:
-//     cling::Interpreter::CallFuncIFacePtr_t fFaceptr;
-//     DeclId_t      fDecl;
-//     std::string   fName;
-//     void *    fTF;
-// };
-//
-//
-//
-// inline std::vector<CallWrapper*> gWrapperHolder;
-//
-// inline
-// CallWrapper* new_CallWrapper(CallWrapper::DeclId_t fid, const std::string& n);
-//
-// inline
-// bool WrapperCall(Cppyy::TCppMethod_t method, size_t nargs, void* args_, void* self, void* result);
 
 #endif // !CPYCPPYY_CPPYY_H
