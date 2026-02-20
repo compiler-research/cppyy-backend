@@ -7,10 +7,23 @@ include(CMakeSystemSpecificInformation)
 set(CMAKE_FIND_PACKAGE_SORT_ORDER NATURAL)
 set(CMAKE_FIND_PACKAGE_SORT_DIRECTION DEC)
 
+if (EMSCRIPTEN)
+    set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
+    set(CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS "-s SIDE_MODULE=1")
+    set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "-s SIDE_MODULE=1")
+    set(CMAKE_STRIP FALSE)
+endif()
+
 add_library(cppyy-backend SHARED
     clingwrapper/src/clingwrapper.cxx
     clingwrapper/src/cppinterop_dispatch.cxx
 )
+
+if (EMSCRIPTEN)
+    target_link_options(cppyy-backend
+        PUBLIC "SHELL: -s WASM_BIGINT"
+    )
+endif()
 
 # set_target_properties(cppyy-backend PROPERTIES VERSION ${PROJECT_VERSION})
 
