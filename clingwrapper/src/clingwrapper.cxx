@@ -1798,8 +1798,6 @@ static inline std::string type_remap(const std::string& n1,
         return "std::basic_string<char>&"; // probably best bet
     } else if (n1 == "std::basic_string<wchar_t>") {
         return "std::basic_string<wchar_t>&";
-    } else if (n1 == "float") {
-        return "double"; // debatable, but probably intended
     } else if (n1 == "complex") {
         return "std::complex<double>";
     }
@@ -1820,83 +1818,31 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
 {
     std::string rc_type = type_remap(rc, lc);
     std::string lc_type = type_remap(lc, rc);
-    bool is_templated = false;
-    if ((lc_type.find('<') != std::string::npos) ||
-        (rc_type.find('<') != std::string::npos)) {
-        is_templated = true;
-    }
 
-    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
-    {
-    std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     std::vector<TCppScope_t> overloads;
     Cpp::GetOperator(scope, Cpp::GetOperatorFromSpelling(opname), overloads,
                      /*kind=*/Cpp::OperatorArity::kBoth);
-    for (auto overload: overloads) {
-        if (Cpp::IsTemplatedFunction(overload)) {
-            unresolved_candidate_methods.push_back(overload);
-            continue;
-        } else {
-            TCppType_t lhs_type = Cpp::GetFunctionArgType(overload, 0);
-            if (lc_type !=
-                Cpp::GetTypeAsString(Cpp::GetUnderlyingType(lhs_type)))
-                continue;
+    
+    std::vector<Cpp::TemplateArgInfo> arg_types;
+    if (auto l = Cppyy::GetScope(lc_type, 0))
+        arg_types.emplace_back(Cppyy::GetReferencedType(Cppyy::GetTypeFromScope(l)));
+    else if (auto l = Cppyy::GetType(lc_type))
+        arg_types.emplace_back(l);
+    else
+        return nullptr;
 
-            if (!rc_type.empty()) {
-                if (Cpp::GetFunctionNumArgs(overload) != 2)
-                    continue;
-                TCppType_t rhs_type = Cpp::GetFunctionArgType(overload, 1);
-                if (rc_type !=
-                    Cpp::GetTypeAsString(Cpp::GetUnderlyingType(rhs_type)))
-                    continue;
-            }
-            return overload;
-        }
-    }
-    }
-
-    if (is_templated) {
-        std::string lc_template = lc_type.substr(
-            lc_type.find("<") + 1, lc_type.rfind(">") - lc_type.find("<") - 1);
-        std::string rc_template = rc_type.substr(
-            rc_type.find("<") + 1, rc_type.rfind(">") - rc_type.find("<") - 1);
-
-        std::vector<Cpp::TemplateArgInfo> arg_types;
-        if (auto l = Cppyy::GetType(lc_type, true))
-            arg_types.emplace_back(l);
+    if (!rc_type.empty()) {
+        if (auto r = Cppyy::GetScope(rc_type, 0))
+            arg_types.emplace_back(Cppyy::GetReferencedType(Cppyy::GetTypeFromScope(r)));
+        else if (auto r = Cppyy::GetType(rc_type))
+            arg_types.emplace_back(r);
         else
             return nullptr;
-
-        if (!rc_type.empty()) {
-            if (auto r = Cppyy::GetType(rc_type, true))
-                arg_types.emplace_back(r);
-            else
-                return nullptr;
-        }
-
-        Cppyy::TCppMethod_t cppmeth = nullptr;
-        {
-            std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-            cppmeth = Cpp::BestOverloadFunctionMatch(
-            unresolved_candidate_methods, {}, arg_types);
-        }
-        if (cppmeth)
-            return cppmeth;
     }
-    {
-        // we are trying to do a madeup IntegralToFloating implicit cast emulating clang
-        bool flag = false;
-        if (rc_type == "int") {
-            rc_type = "double";
-            flag = true;
-        }
-        if (lc_type == "int") {
-            lc_type = "double";
-            flag = true;
-        }
-        if (flag)
-            return GetGlobalOperator(scope, lc_type, rc_type, opname);
-    }
+    Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
+        overloads, {}, arg_types);
+    if (cppmeth)
+        return cppmeth;
     return nullptr;
 }
 
