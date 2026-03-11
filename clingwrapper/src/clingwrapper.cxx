@@ -666,7 +666,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   static unsigned long long struct_count = 0;
   std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
   if (!struct_count)
-    Cpp::Declare(code.c_str(), /*silent=*/false); // initialize the trampoline
+    Cpp::Declare(code.c_str(), /*silent=*/true); // initialize the trampoline
 
   std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   // FIXME: We cannot use silent because it erases our error code from Declare!
@@ -734,7 +734,7 @@ Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_looku
     std::string id = "__Cppyy_GetType_" + std::to_string(var_count++);
     std::string using_clause = "using " + id + " = __typeof__(" + name + ");\n";
 
-    if (!Cpp::Declare(using_clause.c_str(), /*silent=*/false)) {
+    if (!Cpp::Declare(using_clause.c_str(), /*silent=*/true)) {
       TCppScope_t lookup = Cpp::GetNamed(id, 0);
       TCppType_t lookup_ty = Cpp::GetTypeFromScope(lookup);
       return Cpp::GetCanonicalType(lookup_ty);
