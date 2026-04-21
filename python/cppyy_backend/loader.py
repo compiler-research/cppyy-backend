@@ -35,7 +35,7 @@ dl = ctypes.CDLL(None)
 # Function to check if a shared object is already loaded
 def is_shared_object_loaded(lib_path):
     try:
-        # Check if somebody else has dlopen-ed libclangCppInterOp.
+        # Check if somebody else has dlopen-ed libCppInterOp.
         dl.CreateInterpreter
         return True
     except:

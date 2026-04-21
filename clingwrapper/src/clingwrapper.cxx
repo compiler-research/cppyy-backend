@@ -179,7 +179,7 @@ public:
         std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
         if (!Cpp::LoadDispatchAPI(
                 CPPINTEROP_DIR
-                "/lib/libclangCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX)) {
+                "/lib/libCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX)) {
             std::cerr << "[cppyy-backend] Failed to load CppInterOp" << std::endl;
             return;
         }
