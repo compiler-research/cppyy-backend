@@ -565,6 +565,16 @@ bool Cppyy::IsClassType(TCppType_t type) {
     return Cpp::IsRecordType(type);
 }
 
+bool Cppyy::IsIntegerType(TCppType_t type, bool* is_signed /*= nullptr*/) {
+  if (is_signed) {
+    Cpp::Signedness sign;
+    bool res = Cpp::IsIntegerType(type, &sign);
+    *is_signed = (sign == Cpp::Signedness::kSigned);
+    return res;
+  }
+  return Cpp::IsIntegerType(type, nullptr);
+}
+
 bool Cppyy::IsPointerType(TCppType_t type) {
     return Cpp::IsPointerType(type);
 }
