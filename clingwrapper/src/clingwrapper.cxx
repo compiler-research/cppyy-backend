@@ -1824,7 +1824,7 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     std::vector<Cpp::TemplateArgInfo> arg_types;
     if (auto l = Cppyy::GetScope(lc_type, 0))
         arg_types.emplace_back(Cppyy::GetReferencedType(Cppyy::GetTypeFromScope(l)));
-    else if (auto l = Cppyy::GetType(lc_type))
+    else if (auto l = Cppyy::GetType(lc_type, /*enable_slow_lookup=*/true))
         arg_types.emplace_back(l);
     else
         return nullptr;
@@ -1832,7 +1832,7 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
     if (!rc_type.empty()) {
         if (auto r = Cppyy::GetScope(rc_type, 0))
             arg_types.emplace_back(Cppyy::GetReferencedType(Cppyy::GetTypeFromScope(r)));
-        else if (auto r = Cppyy::GetType(rc_type))
+        else if (auto r = Cppyy::GetType(rc_type, /*enable_slow_lookup=*/true))
             arg_types.emplace_back(r);
         else
             return nullptr;
