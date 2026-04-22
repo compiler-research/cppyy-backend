@@ -588,14 +588,14 @@ bool split_comma_saparated_types(const std::string& name,
   std::string trimed_name = trim(name);
   size_t start_pos = 0;
   size_t end_pos = 0;
-  size_t appended_count = 0;
   int matching_angular_brackets = 0;
   while (end_pos < trimed_name.size()) {
     switch (trimed_name[end_pos]) {
     case ',': {
       if (!matching_angular_brackets) {
-        types.push_back(
-            trim(trimed_name.substr(start_pos, end_pos - start_pos)));
+        if(end_pos > start_pos)
+          types.push_back(
+              trim(trimed_name.substr(start_pos, end_pos - start_pos)));
         start_pos = end_pos + 1;
       }
       break;
@@ -605,7 +605,7 @@ bool split_comma_saparated_types(const std::string& name,
       break;
     }
     case '>': {
-      if (matching_angular_brackets > 0) {
+      if (matching_angular_brackets == 1) {
         types.push_back(
             trim(trimed_name.substr(start_pos, end_pos - start_pos + 1)));
         start_pos = end_pos + 1;
@@ -613,8 +613,6 @@ bool split_comma_saparated_types(const std::string& name,
         types.clear();
         return false;
       }
-      start_pos++;
-      end_pos++;
       matching_angular_brackets--;
       break;
     }
