@@ -36,20 +36,6 @@ jobs:
             cling: Off
             llvm_enable_projects: "clang"
             llvm_targets_to_build: "host"
-          - name: osx15-arm-clang-clang-repl-19
-            os: macos-15
-            compiler: clang
-            clang-runtime: '19'
-            cling: Off
-            llvm_enable_projects: "clang"
-            llvm_targets_to_build: "host"
-          - name: osx15-arm-clang-clang-repl-18
-            os: macos-15
-            compiler: clang
-            clang-runtime: '18'
-            cling: Off
-            llvm_enable_projects: "clang"
-            llvm_targets_to_build: "host"
           - name: osx15-arm-clang-clang20-cling
             os: macos-15
             compiler: clang
@@ -70,20 +56,6 @@ jobs:
             os: macos-15-intel
             compiler: clang
             clang-runtime: '20'
-            cling: Off
-            llvm_enable_projects: "clang"
-            llvm_targets_to_build: "host"
-          - name: osx15-x86-clang-clang-repl-19
-            os: macos-15-intel
-            compiler: clang
-            clang-runtime: '19'
-            cling: Off
-            llvm_enable_projects: "clang"
-            llvm_targets_to_build: "host"
-          - name: osx15-x86-clang-clang-repl-18
-            os: macos-15-intel
-            compiler: clang
-            clang-runtime: '18'
             cling: Off
             llvm_enable_projects: "clang"
             llvm_targets_to_build: "host"
@@ -287,12 +259,6 @@ jobs:
             clang-runtime: '20'
             cling: Off
             cppyy: On
-          - name: osx15-arm-clang-clang-repl-19-cppyy
-            os: macos-15
-            compiler: clang
-            clang-runtime: '19'
-            cling: Off
-            cppyy: On
           - name: osx15-arm-clang-clang20-cling-cppyy
             os: macos-15
             compiler: clang
@@ -311,12 +277,6 @@ jobs:
             os: macos-15-intel
             compiler: clang
             clang-runtime: '20'
-            cling: Off
-            cppyy: On
-          - name: osx15-x86-clang-clang-repl-19-cppyy
-            os: macos-15-intel
-            compiler: clang
-            clang-runtime: '19'
             cling: Off
             cppyy: On
           - name: osx15-x86-clang-clang20-cling-cppyy
