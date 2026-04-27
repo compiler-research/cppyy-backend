@@ -677,7 +677,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
     Cpp::Declare(code.c_str(), /*silent=*/true); // initialize the trampoline
 
   std::string var = "__Cppyy_s" + std::to_string(struct_count++);
-  if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/false)) {
+  if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/true)) {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     TCppType_t varN =
         Cpp::GetVariableType(Cpp::GetNamed(var.c_str(), /*parent=*/nullptr));
