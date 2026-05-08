@@ -1741,9 +1741,16 @@ bool Cppyy::IsTemplatedMethod(TCppMethod_t method)
 
 bool Cppyy::IsStaticTemplate(TCppScope_t scope, const std::string& name)
 {
-    if (Cpp::TCppFunction_t tf = GetMethodTemplate(scope, name, ""))
-        return Cpp::IsStaticMethod(tf);
-    return false;
+    std::vector<TCppMethod_t> candidate_methods;
+    Cpp::GetClassTemplatedMethods(name, scope, candidate_methods);
+    bool is_static = true;
+    for (auto i: candidate_methods) {
+        if (!Cpp::IsStaticMethod(i)) {
+            is_static = false;
+            break;
+        }
+    }
+    return is_static;
 }
 
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
