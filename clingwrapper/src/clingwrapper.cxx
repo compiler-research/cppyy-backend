@@ -615,14 +615,6 @@ bool split_comma_saparated_types(const std::string& name,
       break;
     }
     case '>': {
-      if (matching_angular_brackets == 1) {
-        types.push_back(
-            trim(trimed_name.substr(start_pos, end_pos - start_pos + 1)));
-        start_pos = end_pos + 1;
-      } else if (matching_angular_brackets < 1) {
-        types.clear();
-        return false;
-      }
       matching_angular_brackets--;
       break;
     }
