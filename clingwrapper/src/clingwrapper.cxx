@@ -226,6 +226,7 @@ public:
                 g_builtins.insert(name+a);
         }
 
+#ifndef __EMSCRIPTEN__
     // disable fast path if requested
         if (getenv("CPPYY_DISABLE_FASTPATH")) gEnableFastPath = false;
 
@@ -250,6 +251,7 @@ public:
         Cpp::AddIncludePath((ClingBuildDir + "/include").c_str());
         Cpp::AddIncludePath((std::string(CPPINTEROP_DIR) + "/include").c_str());
         Cpp::LoadLibrary("libstdc++", /* lookup= */ true);
+#endif
 
         // load frequently used headers
         const char* code =
