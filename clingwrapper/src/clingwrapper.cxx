@@ -1829,11 +1829,23 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     cppmeth = Cpp::BestOverloadFunctionMatch(
         unresolved_candidate_methods, templ_params, arg_types);
 
-    if (!cppmeth && unresolved_candidate_methods.size() == 1 &&
-        !templ_params.empty()) {
-      cppmeth = Cpp::InstantiateTemplate(
-          unresolved_candidate_methods[0], templ_params.data(),
-          templ_params.size(), /*instantiate_body=*/false);
+    // If overload resolution failed but explicit template arguments were
+    // supplied, fall back to direct template-argument substitution: ask Sema
+    // to instantiate each candidate with the explicit args. Sema's SFINAE
+    // will reject overloads whose substitution fails (e.g. the
+    // initializer_list form of std::make_any with non-init-list explicit
+    // args), so iterating gives back exactly the viable specialisation. The
+    // wrapper-side argument conversion then handles e.g. taking the address
+    // of an instance when the substituted parameter is a pointer.
+    if (!cppmeth && !templ_params.empty()) {
+        for (auto cand : unresolved_candidate_methods) {
+            if (auto* spec = Cpp::InstantiateTemplate(
+                    cand, templ_params.data(), templ_params.size(),
+                    /*instantiate_body=*/false)) {
+                cppmeth = spec;
+                break;
+            }
+        }
     }
 
     return cppmeth;
