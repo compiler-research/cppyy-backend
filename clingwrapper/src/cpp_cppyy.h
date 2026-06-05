@@ -76,6 +76,8 @@ namespace Cppyy {
     RPY_EXPORTED
     TCppType_t GetReferencedType(TCppType_t type, bool rvalue = false);
     RPY_EXPORTED
+    TCppType_t AddTypeQualifier(TCppType_t type, Cpp::QualKind qual);
+    RPY_EXPORTED
     std::string ResolveEnum(TCppScope_t enum_scope);
     RPY_EXPORTED
     bool IsLValueReferenceType(TCppType_t type);
