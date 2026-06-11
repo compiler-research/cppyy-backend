@@ -109,15 +109,52 @@ bool is_integral(std::string& s)
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
+// CppInterOp artifacts prefix (the directory containing lib/ and include/):
+// the CPPINTEROP_BIN_DIR environment variable overrides the compile-time
+// default.
+static inline
+std::string cppinterop_dir()
+{
+    if (const char* env = getenv("CPPINTEROP_BIN_DIR"))
+        return env;
+#ifdef CPPINTEROP_BIN_DIR
+    return CPPINTEROP_BIN_DIR;
+#else
+    return "";
+#endif
+}
+
+static inline
+std::string cppinterop_lib_path()
+{
+    std::string dir = cppinterop_dir();
+    if (dir.empty())
+        return "";
+#ifdef CMAKE_SHARED_LIBRARY_SUFFIX
+    return dir + "/lib/libclangCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX;
+#elif defined(_WIN32)
+    return dir + "/lib/libclangCppInterOp.dll";
+#elif defined(__APPLE__)
+    return dir + "/lib/libclangCppInterOp.dylib";
+#else
+    return dir + "/lib/libclangCppInterOp.so";
+#endif
+}
+
 class ApplicationStarter {
   Cppyy::TInterp_t Interp;
 public:
     ApplicationStarter() {
         std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-        if (!Cpp::LoadDispatchAPI(
-                CPPINTEROP_DIR
-                "/lib/libclangCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX)) {
-            std::cerr << "[cppyy-backend] Failed to load CppInterOp" << std::endl;
+        const std::string lib_path = cppinterop_lib_path();
+        if (lib_path.empty()) {
+            std::cerr << "[cppyy-backend] CppInterOp location unknown: set the"
+                " CPPINTEROP_BIN_DIR environment variable" << std::endl;
+            return;
+        }
+        if (!Cpp::LoadDispatchAPI(lib_path.c_str())) {
+            std::cerr << "[cppyy-backend] Failed to load CppInterOp from "
+                << lib_path << std::endl;
             return;
         }
         // Check if somebody already loaded CppInterOp and created an
@@ -185,7 +222,7 @@ public:
         Cpp::AddIncludePath((ClingSrc + "/tools/cling/include").c_str());
         Cpp::AddIncludePath((ClingSrc + "/include").c_str());
         Cpp::AddIncludePath((ClingBuildDir + "/include").c_str());
-        Cpp::AddIncludePath((std::string(CPPINTEROP_DIR) + "/include").c_str());
+        Cpp::AddIncludePath((cppinterop_dir() + "/include").c_str());
         Cpp::LoadLibrary("libstdc++", /* lookup= */ true);
 
         // load frequently used headers
