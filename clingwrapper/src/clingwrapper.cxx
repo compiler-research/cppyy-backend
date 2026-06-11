@@ -383,6 +383,11 @@ Cppyy::TCppType_t Cppyy::GetReferencedType(TCppType_t type, bool rvalue) {
   return Cpp::GetReferencedType(type, rvalue);
 }
 
+Cppyy::TCppType_t Cppyy::AddTypeQualifier(TCppType_t type, Cpp::QualKind qual) {
+  std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
+  return Cpp::AddTypeQualifier(type, qual);
+}
+
 bool Cppyy::IsRValueReferenceType(TCppType_t type) {
     return Cpp::GetValueKind(type) == Cpp::ValueKind::RValue;
 }
