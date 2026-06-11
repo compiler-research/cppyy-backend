@@ -105,7 +105,7 @@ bool is_integral(std::string& s)
 {
     if (s == "false") { s = "0"; return true; }
     else if (s == "true") { s = "1"; return true; }
-    return !s.empty() && std::find_if(s.begin(), 
+    return !s.empty() && std::find_if(s.begin(),
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
@@ -226,6 +226,10 @@ public:
                      " bool is_not_equal(const C1& c1, const C2& c2) { return "
                      "(bool)(c1 != c2); } }",
                      /*silent=*/false);
+        Cpp::Declare(R"(namespace __cppyy_internal {
+                        class UnknownType {};
+                        })",
+                     /*silent=*/false);
 
         // Define gCling when we run with clang-repl.
         // FIXME: We should get rid of all the uses of gCling as this seems to
@@ -239,7 +243,7 @@ public:
         Cpp::Process(InterpPtrSS.str().c_str());
 
     // helper for multiple inheritance
-        Cpp::Declare("namespace __cppyy_internal { struct Sep; }",
+        Cpp::Declare("namespace __cppyy_internal { struct Sep {}; }",
                      /*silent=*/false);
 
         // std::string libInterOp = I->getDynamicLibraryManager()->lookupLibrary("libcling");
@@ -282,7 +286,7 @@ bool Cppyy::Compile(const std::string& code, bool silent)
 {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     // Declare returns an enum which equals 0 on success
-    return !Cpp::Declare(code.c_str(), silent);
+    return !Cpp::Declare(code.c_str(), false);
 }
 
 std::string Cppyy::ToString(TCppScope_t klass, TCppObject_t obj)
@@ -375,7 +379,14 @@ Cppyy::TCppType_t Cppyy::GetRealType(TCppType_t type) {
 
 Cppyy::TCppType_t Cppyy::GetPointerType(TCppType_t type) {
   std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-  return Cpp::GetPointerType(type);
+  Cpp::ValueKind ref = Cpp::GetValueKind(type);
+  TCppType_t pointer_type = type;
+  pointer_type = Cpp::GetPointerType(Cpp::GetNonReferenceType(type));
+  if (ref == Cpp::ValueKind::LValue)
+    return Cpp::GetReferencedType(pointer_type, false);
+  if (ref == Cpp::ValueKind::RValue)
+    return Cpp::GetReferencedType(pointer_type, true);
+  return pointer_type;
 }
 
 Cppyy::TCppType_t Cppyy::GetReferencedType(TCppType_t type, bool rvalue) {
@@ -482,7 +493,9 @@ static bool is_identifier(std::string_view s) {
 
 // returns true if no new type was added.
 bool Cppyy::AppendTypesSlow(const std::string& name,
-                            std::vector<Cpp::TemplateArgInfo>& types, Cppyy::TCppScope_t parent) {
+                            std::vector<Cpp::TemplateArgInfo>& types,
+                            Cppyy::TCppScope_t parent,
+                            bool append_unknown) {
 
   // Add no new type if string is empty
   if (name.empty())
@@ -503,7 +516,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   };
 
   std::string resolved_name = name;
-  replace_all(resolved_name, "std::initializer_list<", "std::vector<"); // replace initializer_list with vector
+  // replace_all(resolved_name, "std::initializer_list<", "std::vector<"); // replace initializer_list with vector
 
   // If we have a single identifier, we don't need anything complicated.
   // Try scoped lookup first (catches type aliases / nested types declared
@@ -527,7 +540,7 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   static unsigned long long struct_count = 0;
   std::string code = "template<typename ...T> struct __Cppyy_AppendTypesSlow {};\n";
   if (!struct_count)
-    Cpp::Declare(code.c_str(), /*silent=*/true); // initialize the trampoline
+    Cpp::Declare(code.c_str(), /*silent=*/false); // initialize the trampoline
 
   std::string var = "__Cppyy_s" + std::to_string(struct_count++);
   if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/true)) {
@@ -560,8 +573,13 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
     }
 
     if (!type) {
-      types.clear();
-      return true;
+      static Cppyy::TCppType_t unknown_type = Cpp::GetTypeFromScope(Cppyy::GetScope("__cppyy_internal::UnknownType"));
+      if (append_unknown) {
+        types.emplace_back(unknown_type.data);
+        continue;
+      } else {
+        return true;
+      }
     }
 
     if (is_integral(i))
@@ -602,9 +620,9 @@ Cppyy::TCppType_t Cppyy::GetType(const std::string &name, bool enable_slow_looku
     }
 
     if (!enable_slow_lookup) {
-        if (name.find("::") != std::string::npos)
-            throw std::runtime_error("Calling Cppyy::GetType with qualified name '"
-                                + name + "'\n");
+        // if (name.find("::") != std::string::npos)
+        //     throw std::runtime_error("Calling Cppyy::GetType with qualified name '"
+        //                         + name + "'\n");
         return nullptr;
     }
 
@@ -779,10 +797,12 @@ public:
 Cppyy::TCppScope_t Cppyy::GetActualClass(TCppScope_t klass, TCppObject_t obj) {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
 
-    if (!Cpp::IsClassPolymorphic(klass))
+    if (!obj || !Cpp::IsClassPolymorphic(klass))
         return klass;
 
     const std::type_info *typ = &typeid(*(AutoCastRTTI *)obj.data);
+    if (!typ)
+        return klass;
 
     std::string mangled_name = typ->name();
     std::string demangled_name = Cpp::Demangle(mangled_name);
@@ -824,7 +844,7 @@ bool Cppyy::IsBuiltin(const std::string& type_name)
 bool Cppyy::IsBuiltin(TCppType_t type)
 {
     return  Cpp::IsBuiltin(type);
-    
+
 }
 
 bool Cppyy::IsComplete(TCppScope_t scope)
@@ -1274,16 +1294,8 @@ bool Cppyy::IsSmartPtr(TCppScope_t klass)
 }
 
 bool Cppyy::GetSmartPtrInfo(
-    const std::string& tname, TCppScope_t* raw, TCppMethod_t* deref)
+    Cppyy::TCppScope_t scope, TCppScope_t* raw, TCppMethod_t* deref)
 {
-    // TODO: We can directly accept scope instead of name
-    const std::string& rn = ResolveName(tname);
-    if (gSmartPtrTypes.find(rn.substr(0, rn.find("<"))) == gSmartPtrTypes.end())
-        return false;
-
-    if (!raw && !deref) return true;
-
-    TCppScope_t scope = Cppyy::GetScope(rn);
     if (!scope)
         return false;
 
@@ -1301,13 +1313,27 @@ bool Cppyy::GetSmartPtrInfo(
     return (!deref || *deref) && (!raw || *raw);
 }
 
+bool Cppyy::GetSmartPtrInfo(
+    const std::string& tname, TCppScope_t* raw, TCppMethod_t* deref)
+{
+    // TODO: We can directly accept scope instead of name
+    const std::string& rn = ResolveName(tname);
+    if (gSmartPtrTypes.find(rn.substr(0, rn.find("<"))) == gSmartPtrTypes.end())
+        return false;
+
+    if (!raw && !deref) return true;
+
+    TCppScope_t scope = Cppyy::GetScope(rn);
+    return GetSmartPtrInfo(scope, raw, deref);
+}
+
 // type offsets --------------------------------------------------------------
 ptrdiff_t Cppyy::GetBaseOffset(TCppScope_t derived, TCppScope_t base,
     TCppObject_t address, int direction, bool rerror)
 {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     intptr_t offset = Cpp::GetBaseClassOffset(derived, base);
-    
+
     if (offset == -1)   // Cling error, treat silently
         return rerror ? (ptrdiff_t)offset : 0;
 
@@ -1349,7 +1375,7 @@ Cppyy::TCppType_t Cppyy::GetMethodReturnType(TCppMethod_t method)
 std::string Cppyy::GetMethodReturnTypeAsString(TCppMethod_t method)
 {
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-    return 
+    return
     Cpp::GetTypeAsString(
         Cpp::GetCanonicalType(
             Cpp::GetFunctionReturnType(method)));
@@ -1456,10 +1482,40 @@ std::string Cppyy::GetMethodSignature(TCppMethod_t method, bool show_formal_args
     return sig.str();
 }
 
-std::string Cppyy::GetMethodPrototype(TCppMethod_t method, bool show_formal_args)
-{
-  assert(0 && "Unused");
-  return ""; // return Cpp::GetFunctionPrototype(method, show_formal_args);
+Cppyy::TCppType_t Cppyy::GetFnTypeFromStdFn(TCppType_t fn_type) {
+    fn_type = Cpp::IsReferenceType(fn_type) ? Cpp::GetNonReferenceType(fn_type) : fn_type;
+    fn_type = Cpp::IsPointerType(fn_type) ? Cpp::GetPointeeType(fn_type) : fn_type;
+    TCppScope_t scope = Cpp::GetScopeFromType(fn_type);
+    std::vector<Cpp::TemplateArgInfo> args;
+    Cpp::GetClassTemplateArgs(scope, args);
+    assert(args.size() == 1);
+    if (args.size() == 1)
+        return args[0].m_Type;
+    return nullptr;
+}
+
+void Cppyy::GetFnTypeSig(TCppType_t fn_type, std::vector<TCppType_t>& arg_types) {
+    fn_type = Cpp::IsReferenceType(fn_type) ? Cpp::GetNonReferenceType(fn_type) : fn_type;
+    fn_type = Cpp::IsPointerType(fn_type) ? Cpp::GetPointeeType(fn_type) : fn_type;
+    Cpp::GetFnTypeSignature(fn_type, arg_types);
+}
+
+bool Cppyy::IsSameType(TCppType_t typ1, TCppType_t typ2) {
+    return Cpp::IsSameType(typ1, typ2);
+}
+
+bool Cppyy::IsFunctionType(TCppType_t typ) {
+    typ = Cpp::IsReferenceType(typ) ? Cpp::GetNonReferenceType(typ) : typ;
+    typ = Cpp::IsPointerType(typ) ? Cpp::GetPointeeType(typ) : typ;
+    return Cpp::IsFunctionProtoType(typ);
+}
+
+bool Cppyy::IsSimilarFnTypes(TCppType_t typ1, TCppType_t typ2) {
+    typ1 = Cpp::IsReferenceType(typ1) ? Cpp::GetNonReferenceType(typ1) : typ1;
+    typ2 = Cpp::IsReferenceType(typ2) ? Cpp::GetNonReferenceType(typ2) : typ2;
+    typ1 = Cpp::IsPointerType(typ1) ? Cpp::GetPointeeType(typ1) : typ1;
+    typ2 = Cpp::IsPointerType(typ2) ? Cpp::GetPointeeType(typ2) : typ2;
+    return Cpp::IsSameType(typ1, typ2);
 }
 
 std::string Cppyy::GetDoxygenComment(TCppScope_t scope, bool strip_markers)
@@ -1526,8 +1582,173 @@ bool Cppyy::IsStaticTemplate(TCppScope_t scope, const std::string& name)
     return is_static;
 }
 
+bool Cppyy::IsNonStaticMethod(Cppyy::TCppMethod_t func) {
+    return Cpp::IsMethod(func) && !Cpp::IsStaticMethod(func);
+}
+
+bool IsTemplateParamEquivalentTypes(Cppyy::TCppType_t typ1, Cppyy::TCppType_t typ2, Cpp::QualKind& qual,
+                       Cpp::ValueKind& ref, bool& pointer) {
+    qual = Cpp::QualKind::None;
+    ref = Cpp::ValueKind::None;
+    pointer = false;
+                           
+    ref = ref ^ Cpp::GetValueKind(typ1);
+    ref = ref ^ Cpp::GetValueKind(typ2);
+    typ2 = Cpp::IsReferenceType(typ2) ? Cpp::GetNonReferenceType(typ2) : typ2;
+
+    pointer ^= Cpp::IsPointerType(typ1);
+    pointer ^= Cpp::IsPointerType(typ2);
+    typ2 = Cpp::IsPointerType(typ2) ? Cpp::GetPointeeType(typ2) : typ2;
+
+    if (Cpp::IsTemplateParmType(typ2))
+        return true; // we assume template parameter type is equivalent to any type
+    return false;
+}
+
+namespace  {
+Cppyy::TCppMethod_t BestOverloadFunctionMatch(
+        const std::vector<Cppyy::TCppMethod_t> &candidates,
+        std::vector<Cpp::TemplateArgInfo> &arg_types,
+        const std::vector<Cpp::TemplateArgInfo> &templ_params,
+        std::vector<Cppyy::TCppMethod_t> &ambiguous_candidates,
+        Cppyy::TCppScope_t parent_scope,
+        bool is_operator) {
+    std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
+
+    Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(candidates, templ_params, arg_types, ambiguous_candidates, is_operator);
+    if (cppmeth) return cppmeth;
+
+    Cppyy::TCppMethod_t potential_cppmeth = nullptr;
+    bool potential_cppmeth_ambiguous = false;
+    for (auto fn : candidates) {
+        size_t required_arg_count = Cpp::GetFunctionRequiredArgs(fn);
+        size_t arg_count = Cpp::GetFunctionNumArgs(fn);
+        bool skipThis = Cppyy::IsNonStaticMethod(fn) && !Cppyy::IsConstructor(fn);
+        if (skipThis) {
+            arg_count++;
+            required_arg_count++;
+        }
+        if (arg_types.size() > arg_count || arg_types.size() < required_arg_count)
+            continue;
+
+        // we track potential_cppmeth based on number of args only
+        // and not the type of these arguments
+        if (!potential_cppmeth)
+            potential_cppmeth = fn;
+        else
+            potential_cppmeth_ambiguous = true;
+
+        size_t I = 0;
+        for (auto& arg: arg_types) {
+            if (I == 0 && skipThis) {
+                // ignore the this parameter
+                I++;
+                continue;
+            }
+            Cpp::QualKind qual = Cpp::QualKind::None;
+            Cpp::ValueKind ref = Cpp::ValueKind::None;
+            bool pointer = false;
+            static Cppyy::TCppScope_t initializer_list_scope = Cppyy::GetScopeFromType(Cppyy::GetTypeFromScope(Cppyy::GetScope("std::initializer_list")));
+            static Cppyy::TCppScope_t vector_scope = Cppyy::GetScope("std::vector");
+            static Cppyy::TCppType_t string_type = Cppyy::GetRealType(Cppyy::GetTypeFromScope(Cppyy::GetScope("std::string")));
+            static Cppyy::TCppType_t wstring_type = Cppyy::GetRealType(Cppyy::GetTypeFromScope(Cppyy::GetScope("std::wstring")));
+            static Cppyy::TCppType_t char_type = Cppyy::GetType("char");
+            static Cppyy::TCppType_t char_pointer_type = Cppyy::GetPointerType(char_type);
+            static Cppyy::TCppType_t wchar_pointer_type = Cppyy::GetPointerType(Cppyy::GetType("wchar_t"));
+            Cppyy::TCppType_t fn_arg_type = Cpp::GetFunctionArgType(fn, skipThis ? I - 1 : I);
+            assert(string_type);
+            Cppyy::TCppType_t old_type = nullptr;
+            if (Cpp::IsEquivalentTypes(arg.m_Type, fn_arg_type, qual, ref, pointer) && pointer) {
+                // Only promotion to pointer should be allowed.
+                old_type = arg.m_Type;
+                arg.m_Type = Cppyy::GetPointerType(arg.m_Type).data;
+                if (ref != Cpp::ValueKind::None)
+                    arg.m_Type = Cpp::GetNonReferenceType(arg.m_Type).data;
+            } else if (Cpp::IsEquivalentTypes(string_type, arg.m_Type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(char_pointer_type, fn_arg_type, qual, ref, pointer)) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(fn_arg_type))))) {
+                // promote std::string to char*
+                old_type = arg.m_Type;
+                arg.m_Type = char_pointer_type.data;
+            } else if (Cpp::IsEquivalentTypes(string_type, arg.m_Type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(char_type, fn_arg_type, qual, ref, pointer))) {
+                // promote std::string to char
+                // is this fine?
+                old_type = arg.m_Type;
+                arg.m_Type = char_type.data;
+            } else if (Cpp::IsEquivalentTypes(string_type, fn_arg_type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(char_pointer_type, arg.m_Type, qual, ref, pointer)) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(arg.m_Type))))) {
+                // promote char* to std::string
+                old_type = arg.m_Type;
+                arg.m_Type = string_type.data;
+            } else if (Cpp::IsEquivalentTypes(string_type, arg.m_Type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(wchar_pointer_type, fn_arg_type, qual, ref, pointer)) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(fn_arg_type))))) {
+                // promote std::string to wchar_t*
+                old_type = arg.m_Type;
+                arg.m_Type = wchar_pointer_type.data;
+            } else if (Cpp::IsEquivalentTypes(wstring_type, fn_arg_type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(wchar_pointer_type, arg.m_Type, qual, ref, pointer)) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(arg.m_Type))))) {
+                // promote wchar_t* to std::wstring
+                old_type = arg.m_Type;
+                arg.m_Type = wstring_type.data;
+            // } else if (Cpp::IsEquivalentTypes(string_type, arg.m_Type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(wstring_type, fn_arg_type, qual, ref, pointer))) {
+            //     // promote std::string to std::wstring
+            //     old_type = arg.m_Type;
+            //     arg.m_Type = wstring_type.data;
+            // } else if (Cpp::IsEquivalentTypes(char_pointer_type, arg.m_Type, qual, ref, pointer) && (Cpp::IsEquivalentTypes(wstring_type, fn_arg_type, qual, ref, pointer)) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(arg.m_Type)))) && (Cpp::IsPointerType(Cpp::GetNonReferenceType(Cppyy::ResolveType(fn_arg_type))))) {
+            //     // promote char* to wchar_t*
+            //     old_type = arg.m_Type;
+            //     arg.m_Type = wstring_type.data;
+            } else if (auto ArgD = Cppyy::GetScopeFromType(arg.m_Type), ParamD = Cppyy::GetScopeFromType(fn_arg_type);
+                       (ArgD && ParamD) && Cpp::GetTemplatedDecl(ArgD) == Cpp::GetTemplatedDecl(ParamD) && Cpp::GetTemplatedDecl(ArgD) == initializer_list_scope && !Cpp::IsTemplateParmType(fn_arg_type)) {
+                // cast from std::initializer_list<python int> to std::initializer_list<T>
+                // where T is the actual concrete C++ side type for this function
+                old_type = arg.m_Type;
+                arg.m_Type = fn_arg_type.data;
+            } else if (IsTemplateParamEquivalentTypes(arg.m_Type, fn_arg_type, qual, ref, pointer)) {
+                // this is a templated type, we want to cast references/pointers
+                old_type = arg.m_Type;
+                if (ref != Cpp::ValueKind::None) {
+                    if (Cpp::GetValueKind(arg.m_Type) == ref) {
+                        // remove reference
+                        arg.m_Type = Cpp::GetNonReferenceType(arg.m_Type).data;
+                    } else {
+                        // create a reference
+                        arg.m_Type = Cpp::GetReferencedType(Cpp::GetNonReferenceType(arg.m_Type), ref == Cpp::ValueKind::RValue).data;
+                    }
+                }
+                if (pointer) {
+                    if (Cpp::IsPointerType(arg.m_Type)) {
+                        // remove pointer
+                        arg.m_Type = Cpp::GetPointeeType(arg.m_Type).data;
+                    } else {
+                        // add pointer
+                        arg.m_Type = Cpp::GetPointerType(arg.m_Type).data;
+                    }
+                }
+                if (old_type == arg.m_Type) {
+                    assert(false && "This should be unreachable according to the author of this code"); 
+                    old_type = nullptr;
+                }
+            }
+            if (old_type) {
+                if (!cppmeth) {
+                    // FIXME: this call should happen outside the inner for loop?
+                    // FIXME: How to handle ambiguous_candidates in this case?
+                    cppmeth = Cpp::BestOverloadFunctionMatch(candidates, {}, arg_types, ambiguous_candidates, is_operator);
+                } else if (Cppyy::TCppMethod_t new_meth = Cpp::BestOverloadFunctionMatch(candidates, {}, arg_types, ambiguous_candidates, is_operator); new_meth && new_meth != cppmeth) {
+                    return nullptr; // ambiguous, raise diagnostic
+                }
+                arg.m_Type = old_type.data;
+            }
+            I++;
+        }
+    }
+
+    // proper argument type match failed
+    // trying improper argument length match
+    if (!cppmeth && !potential_cppmeth_ambiguous && !Cpp::IsTemplatedFunction(potential_cppmeth))
+        cppmeth = potential_cppmeth;
+    return cppmeth;
+}
+}
+
 Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
-    TCppScope_t scope, const std::string& name, const std::string& proto)
+    TCppScope_t scope, const std::string& name, const std::string& proto, std::vector<Cppyy::TCppMethod_t> &ambiguous_candidates, bool include_non_templated)
 {
     std::string pureName;
     std::string explicit_params;
@@ -1541,11 +1762,20 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     } else {
         pureName = name;
     }
-    
+
     std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
 
     std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
-    Cpp::GetClassTemplatedMethods(pureName, scope, unresolved_candidate_methods);
+    {
+        std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
+        Cpp::GetClassTemplatedMethods(pureName, scope,
+                                    unresolved_candidate_methods);
+        if (include_non_templated) {
+            auto fns = Cpp::GetFunctionsUsingName(scope, pureName);
+            for (auto i: fns)
+                unresolved_candidate_methods.push_back(i);
+        }
+    }
     if (unresolved_candidate_methods.empty() && name.find("operator") == 0) {
         // try operators
         Cppyy::GetClassOperators(scope, pureName, unresolved_candidate_methods);
@@ -1554,13 +1784,18 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
     // CPyCppyy assumes that we attempt instantiation here
     std::vector<Cpp::TemplateArgInfo> arg_types;
     std::vector<Cpp::TemplateArgInfo> templ_params;
-    Cppyy::AppendTypesSlow(proto, arg_types, scope);
-    Cppyy::AppendTypesSlow(explicit_params, templ_params, scope);
-    Cppyy::TCppMethod_t cppmeth = nullptr;
-    cppmeth = Cpp::BestOverloadFunctionMatch(
-        unresolved_candidate_methods, templ_params, arg_types);
+    Cppyy::AppendTypesSlow(proto, arg_types, scope, true);
+    Cppyy::AppendTypesSlow(explicit_params, templ_params, scope, true);
 
-    if (!cppmeth && unresolved_candidate_methods.size() == 1 &&
+    Cppyy::TCppMethod_t cppmeth = nullptr;
+    {
+        cppmeth = ::BestOverloadFunctionMatch(
+        unresolved_candidate_methods, arg_types, templ_params,
+        ambiguous_candidates, scope, /*is_operator=*/false);
+    }
+    if (cppmeth) return cppmeth;
+
+    if (unresolved_candidate_methods.size() == 1 &&
         !templ_params.empty()) {
       cppmeth = Cpp::InstantiateTemplate(
           TCppScope_t(unresolved_candidate_methods[0].data), templ_params.data(),
@@ -1569,6 +1804,18 @@ Cppyy::TCppMethod_t Cppyy::GetMethodTemplate(
 
     return TCppMethod_t(cppmeth.data);
     // if it fails, use Sema to propogate info about why it failed (DeductionInfo)
+}
+
+Cppyy::TCppMethod_t Cppyy::BestOverloadFunctionMatch(
+        const std::vector<Cppyy::TCppMethod_t> &candidates,
+        const std::string &proto,
+        std::vector<Cppyy::TCppMethod_t> &ambiguous_candidates,
+        TCppScope_t parent_scope,
+        bool is_operator) {
+    std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
+    std::vector<Cpp::TemplateArgInfo> arg_types;
+    if (!proto.empty() && Cppyy::AppendTypesSlow(proto, arg_types, parent_scope, true)) return nullptr;
+    return ::BestOverloadFunctionMatch(candidates, arg_types, {}, ambiguous_candidates, parent_scope, is_operator);
 }
 
 static inline std::string type_remap(const std::string& n1,
@@ -1590,6 +1837,9 @@ static inline std::string type_remap(const std::string& n1,
     return n1;
 }
 
+bool Cppyy::IsOperator(Cppyy::TCppScope_t scope) { return Cpp::IsOperator(scope.data); }
+bool Cppyy::IsConversionOperator(Cppyy::TCppScope_t scope) { return Cpp::IsConversionOperator(scope.data); }
+
 void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
                               const std::string& opname,
                               std::vector<TCppMethod_t>& operators) {
@@ -1600,12 +1850,14 @@ void Cppyy::GetClassOperators(Cppyy::TCppScope_t klass,
 }
 
 Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
-    TCppScope_t scope, const std::string& lc, const std::string& rc, const std::string& opname)
+    Cppyy::TCppScope_t scope, const std::string& lc, const std::string& rc, const std::string& opname, std::vector<Cppyy::TCppMethod_t> &ambiguous_candidates)
 {
     std::string rc_type = type_remap(rc, lc);
     std::string lc_type = type_remap(lc, rc);
 
-    std::vector<TCppMethod_t> overloads;
+    std::vector<Cppyy::TCppMethod_t> unresolved_candidate_methods;
+    std::vector<Cppyy::TCppMethod_t> overloads;
+    std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
     Cpp::GetOperator(scope, Cpp::GetOperatorFromSpelling(opname), overloads,
                      /*kind=*/Cpp::OperatorArity::kBoth);
 
@@ -1631,7 +1883,7 @@ Cppyy::TCppMethod_t Cppyy::GetGlobalOperator(
             return nullptr;
     }
     Cppyy::TCppMethod_t cppmeth = Cpp::BestOverloadFunctionMatch(
-        overloads, {}, arg_types);
+        overloads, {}, arg_types, ambiguous_candidates, true);
     if (cppmeth)
         return cppmeth;
     return nullptr;
@@ -1703,7 +1955,7 @@ Cppyy::TCppScope_t Cppyy::WrapLambdaFromVariable(TCppScope_t var) {
     code << "namespace __cppyy_internal_wrap_g {\n"
       << "  " << "std::function " << name << " = ::" << Cpp::GetQualifiedName(var) << ";\n"
       << "}\n";
-    
+
     if (Cppyy::Compile(code.str().c_str())) {
       TCppScope_t res = Cpp::GetNamed(
           name, Cpp::GetScope("__cppyy_internal_wrap_g", /*parent=*/nullptr));
@@ -1726,7 +1978,7 @@ Cppyy::TCppMethod_t Cppyy::AdaptFunctionForLambdaReturn(Cppyy::TCppMethod_t fn) 
             call << ", ";
     }
     call << ")";
-    
+
     std::ostringstream code;
     static int i = 0;
     std::string name = "lambda_return_convert_" + std::to_string(++i);
@@ -1807,7 +2059,7 @@ Cppyy::TCppMethod_t Cppyy::ReduceReturnType(TCppMethod_t fn, TCppType_t reduce) 
             call << ", ";
     }
     call << ")";
-    
+
     std::ostringstream code;
     static int i = 0;
     std::string name = "reduced_function_" + std::to_string(++i);
