@@ -64,7 +64,7 @@ else()
 endif()
 
 target_compile_definitions(cppyy-backend PRIVATE
-  CPPINTEROP_DIR="${_interop_install_dir}"
+  CPPINTEROP_BIN_DIR="${_interop_install_dir}"
   CMAKE_SHARED_LIBRARY_SUFFIX="${CMAKE_SHARED_LIBRARY_SUFFIX}"
 )
 
