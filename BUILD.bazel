@@ -1,0 +1,90 @@
+load("@cppyy_bazel//:defs.bzl", "BASE_COPTS", "repo_loc", "repo_rloc")
+load("@rules_python//python:packaging.bzl", "py_wheel")
+
+# cppyy-backend is a sanitizer boundary: libcppyy-backend.so is dlopen'd by a
+# (possibly non-instrumented) host interpreter and works directly with the
+# non-sanitized LLVM/clang runtime, so an asan/ubsan-instrumented build would die
+# on undefined __asan_* symbols at load. Opt the package out; harmless when the
+# consumer build isn't sanitized.
+package(
+    default_visibility = ["//visibility:public"],
+    features = [
+        "-asan",
+        "-ubsan",
+    ],
+)
+
+# CppInterOp headers (incl. the generated CppInterOpAPI.inc) live in the
+# @cppinterop tree, not an install prefix. Build-time includes resolve against
+# the external path; the runtime CPPINTEROP_DIR/{lib,include} the source dlopen's
+# resolve against the runfiles path.
+_CPPINTEROP_RLOC = repo_rloc("@cppinterop")
+
+cc_library(
+    name = "lib",
+    srcs = glob(["clingwrapper/src/*.cxx"]),
+    hdrs = glob(["clingwrapper/src/*.h"]) + ["@cppinterop//:headers"],
+    copts = BASE_COPTS + [
+        # BASE_COPTS sets -fno-exceptions/-fno-rtti; clingwrapper needs both
+        # (throw std::runtime_error, typeid for AutoCastRTTI).
+        "-fexceptions",
+        "-frtti",
+        # CppInterOp headers are <CppInterOp/...>; include root is the source
+        # tree plus the genfiles tree where the tblgen'd .inc headers land.
+        "-I" + repo_loc("@cppinterop") + "/include",
+        "-I$(GENDIR)/" + repo_loc("@cppinterop") + "/include",
+        # CMAKE: CPPINTEROP_DIR drives the runtime dlopen path
+        # CPPINTEROP_DIR "/lib/libclangCppInterOp" CMAKE_SHARED_LIBRARY_SUFFIX.
+        "-DCPPINTEROP_DIR='\"" + _CPPINTEROP_RLOC + "\"'",
+        # CMAKE: CMAKE_SHARED_LIBRARY_SUFFIX, .so on Linux.
+        "-DCMAKE_SHARED_LIBRARY_SUFFIX='\".so\"'",
+        # clingwrapper has an unused var and a non-canonical dtor name; demote
+        # so a consumer toolchain with -Werror (e.g. nebula) doesn't fail.
+        "-Wno-error=unused-variable",
+        "-Wno-unused-variable",
+        "-Wno-error=dtor-name",
+        "-Wno-dtor-name",
+        "-Wno-error=unused-parameter",
+        "-Wno-unused-parameter",
+    ],
+    data = ["@cppinterop//:headers"],
+    # CMAKE: target_include_directories PRIVATE clingwrapper/src.
+    includes = ["clingwrapper/src"],
+)
+
+cc_shared_library(
+    name = "solib",
+    additional_linker_inputs = ["@llvm//:lib_files"],
+    dynamic_deps = ["@cppinterop//:solib"],
+    shared_lib_name = "python/cppyy_backend/lib/libcppyy-backend.so",
+    deps = [":lib"],
+)
+
+py_library(
+    name = "pylib",
+    srcs = glob(["python/cppyy_backend/**/*.py"]),
+    # Carry the runtime libs so anything depending on the python package (e.g.
+    # cppyy -> @cppyy//:lib) gets libcppyy-backend.so + libclangCppInterOp.so in
+    # its runfiles, not just the headers.
+    data = [
+        ":solib",
+        "@cppinterop//:headers",
+        "@cppinterop//:solib",
+    ],
+    imports = ["python"],
+)
+
+# strip_path_prefixes drops the python/ source root and the solib's python/
+# wrapper so both land under cppyy_backend/ (the .so at cppyy_backend/lib/),
+# matching where setup.py ships them.
+py_wheel(
+    name = "cppyy_backend_wheel",
+    distribution = "cppyy-backend",
+    python_tag = "py3",
+    strip_path_prefixes = ["python"],
+    version = "0.1.0.dev0",
+    deps = [
+        ":pylib",
+        ":solib",
+    ],
+)
