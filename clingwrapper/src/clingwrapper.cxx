@@ -529,15 +529,24 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   if (!struct_count)
     Cpp::Declare(code.c_str(), /*silent=*/true); // initialize the trampoline
 
-  std::string var = "__Cppyy_s" + std::to_string(struct_count++);
-  if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + resolved_name + "> " + var +";\n").c_str(), /*silent=*/true)) {
-    std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-    TCppType_t varN =
-        Cpp::GetVariableType(Cpp::GetNamed(var.c_str(), /*parent=*/nullptr));
-    TCppScope_t instance_class = Cpp::GetScopeFromType(varN);
-    size_t oldSize = types.size();
-    Cpp::GetClassTemplateInstantiationArgs(instance_class, types);
-    return oldSize == types.size();
+  // The trampoline declares its variable in the global scope, so a name
+  // written relative to a parent (e.g. "vector<int>" looked up in std)
+  // won't resolve. Try the name as given, then qualified by the parent.
+  std::vector<std::string> candidates = {resolved_name};
+  if (parent && parent != Cpp::GetGlobalScope() &&
+      (Cppyy::IsNamespace(parent) || Cppyy::IsClass(parent)))
+    candidates.push_back(Cpp::GetQualifiedCompleteName(parent) + "::" + resolved_name);
+
+  for (const std::string& candidate : candidates) {
+    std::string var = "__Cppyy_s" + std::to_string(struct_count++);
+    if (!Cpp::Declare(("__Cppyy_AppendTypesSlow<" + candidate + "> " + var + ";\n").c_str(), /*silent=*/true)) {
+      TCppType_t varN =
+          Cpp::GetVariableType(Cpp::GetNamed(var.c_str(), /*parent=*/nullptr));
+      TCppScope_t instance_class = Cpp::GetScopeFromType(varN);
+      size_t oldSize = types.size();
+      Cpp::GetClassTemplateInstantiationArgs(instance_class, types);
+      return oldSize == types.size();
+    }
   }
 
   // We split each individual types based on , and resolve it
@@ -687,25 +696,23 @@ Cppyy::TCppScope_t Cppyy::GetScope(const std::string& name,
 
     // FIXME: avoid string parsing here
     if (name.find('<') != std::string::npos) {
-      // Templated Type; May need instantiation
-      size_t start = name.find('<');
-      size_t end = name.rfind('>');
-      std::string params = name.substr(start + 1, end - start - 1);
-
-      std::string pure_name = name.substr(0, start);
-      Cppyy::TCppScope_t scope = Cpp::GetScope(pure_name, parent_scope);
-      if (!scope && (!parent_scope || parent_scope == Cpp::GetGlobalScope()))
-        scope = Cpp::GetScopeFromCompleteName(pure_name);
-
-      if (Cppyy::IsTemplate(scope)) {
-        std::vector<Cpp::TemplateArgInfo> templ_params;
-        InterOpMutex.unlock(); // unlock to allow AppendTypesSlow
-        if (!Cppyy::AppendTypesSlow(params, templ_params)) {
-          std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
-          return Cpp::InstantiateTemplate(scope, templ_params.data(),
-                                          templ_params.size(),
-                                          /*instantiate_body=*/false);
-        }
+      // Templated type; may need instantiation. Resolve the whole type
+      // expression (e.g. "std::array<float, 3>") and read back its scope.
+      // Splitting off the argument list and resolving it directly cannot
+      // represent non-type arguments such as the `3` in std::array<float, 3>.
+      std::vector<Cpp::TemplateArgInfo> types;
+      InterOpMutex.unlock(); // unlock to allow AppendTypesSlow
+      bool added_new_type = !Cppyy::AppendTypesSlow(name, types, /*parent=*/parent_scope);
+      std::lock_guard<std::recursive_mutex> Lock(InterOpMutex);
+      if (added_new_type && types.size() == 1) {
+        TCppScope_t scope = Cpp::GetScopeFromType(types[0].m_Type);
+        // Naming the type as a template argument above does not instantiate
+        // it, so the specialization may still be declared-but-undefined.
+        // Force its definition: callers expect a complete scope, e.g. to
+        // walk its base classes.
+        if (scope)
+          Cpp::IsComplete(scope);
+        return scope;
       }
     }
     return nullptr;
