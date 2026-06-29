@@ -109,3 +109,9 @@ ENV/
 .mypy_cache/
 
 .vscode
+# Bazel convenience symlinks and module lock
+/bazel-bin
+/bazel-out
+/bazel-testlogs
+/bazel-cppyy-backend
+MODULE.bazel.lock
