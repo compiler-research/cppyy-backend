@@ -107,7 +107,9 @@ bool is_integral(std::string& s)
 {
     if (s == "false") { s = "0"; return true; }
     else if (s == "true") { s = "1"; return true; }
-    return !s.empty() && std::find_if(s.begin(), 
+    // allow a leading minus (negative literal)
+    auto begin = s.begin() + (s.size() > 1 && s[0] == '-' ? 1 : 0);
+    return !s.empty() && std::find_if(begin,
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
@@ -513,6 +515,27 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
   // outside the query scope, e.g. `typedef Foo Bar;` at TU consulted
   // from a method on Foo).
   if (is_identifier(name)) {
+    // true/false are identifier-shaped value literals.
+    if (name == "true" || name == "false") {
+      types.emplace_back(Cpp::GetType("bool").data, name == "true" ? "1" : "0");
+      return false;
+    }
+    // Non-type entity (variable, enum constant): pass its name; Sema needs an
+    // expression, not the entity's type.
+    TCppScope_t named = parent ? Cpp::GetNamed(name, parent) : nullptr;
+    if (!named)
+      named = Cpp::GetNamed(name);
+    if (named && (Cpp::IsVariable(named) || Cpp::IsEnumConstant(named))) {
+      types.emplace_back(Cpp::GetTypeFromScope(named).data,
+                         strdup(Cpp::GetQualifiedCompleteName(named).c_str()));
+      return false;
+    }
+    // Template name (template-template arg): no type; carried by name.
+    if (named && Cpp::IsTemplate(named)) {
+      types.emplace_back(nullptr,
+                         strdup(Cpp::GetQualifiedCompleteName(named).c_str()));
+      return false;
+    }
     TCppType_t type = parent ? Cpp::GetType(name, parent) : nullptr;
     if (!type)
       type = Cpp::GetType(name);
@@ -574,16 +597,28 @@ bool Cppyy::AppendTypesSlow(const std::string& name,
     }
 
     if (!type) {
+      // Qualified template name (template-template arg).
+      if (TCppScope_t named = GetEnumFromCompleteName(i)) {
+        if (Cpp::IsTemplate(named)) {
+          types.emplace_back(
+              nullptr, strdup(Cpp::GetQualifiedCompleteName(named).c_str()));
+          continue;
+        }
+      }
       types.clear();
       return true;
     }
 
     if (is_integral(i))
         integral_value = strdup(i.c_str());
-    if (TCppScope_t scope = GetEnumFromCompleteName(i))
+    if (TCppScope_t scope = GetEnumFromCompleteName(i)) {
       if (Cpp::IsEnumConstant(scope))
         integral_value =
             strdup(std::to_string(Cpp::GetEnumConstantValue(scope)).c_str());
+      // Variable: a non-type argument; pass its name (see identifier path).
+      else if (Cpp::IsVariable(scope))
+        integral_value = strdup(Cpp::GetQualifiedCompleteName(scope).c_str());
+    }
     types.emplace_back(type.data, integral_value);
   }
   return false;
