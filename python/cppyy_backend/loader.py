@@ -19,7 +19,7 @@ import warnings
 
 if 'win32' in sys.platform:
     soext = '.dll'
-elif 'linux' in sys.platform:
+elif 'linux' in sys.platform or 'emscripten' in sys.platform:
     soext = '.so'
 else:
     soext = '.dylib'
